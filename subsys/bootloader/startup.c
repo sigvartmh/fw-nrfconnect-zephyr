@@ -60,7 +60,7 @@ extern void SystemInit(void);
 void dummy_handler(void);
 
 /* weak assign all interrupt handlers to dummy_handler */
-#define ALIAS(name) __attribute__((weak, alias (name)))
+#define ALIAS(name) __attribute__((weak, alias(name)))
 void reset_handler(void);
 void nmi_handler(void) ALIAS("dummy_handler");
 void hard_fault_handler(void) ALIAS("dummy_handler");
@@ -78,62 +78,61 @@ void pend_sv_handler(void) ALIAS("dummy_handler");
 void sys_tick_handler(void) ALIAS("dummy_handler");
 
 
-extern uint32_t __kernel_ram_start; //TODO: Find _end_of_stack symbol
+extern uint32_t __kernel_ram_start; // TODO: Find _end_of_stack symbol
 
 /* TODO: Add vendor specific vectors to vector table */
 void *core_vector_table[16] __attribute__((section(".exc_vector_table"))) = {
 	&__kernel_ram_start + CONFIG_MAIN_STACK_SIZE,
-	reset_handler, //__reset
-	nmi_handler, // __nmi
+	reset_handler,      //__reset
+	nmi_handler,	// __nmi
 	hard_fault_handler, //__hard_fault
 #if defined(CONFIG_ARMV6_M_ARMV8_M_BASELINE)
-	0, /* reserved */ //__reserved
-	0, /* reserved */
-	0, /* reserved */
-	0, /* reserved */
-	0, /* reserved */
-	0, /* reserved */
-	0, /* reserved */
-	svc_handler, //__svc
-	0, /* reserved */
+	0,
+	/* reserved */ //__reserved
+	0,	     /* reserved */
+	0,	     /* reserved */
+	0,	     /* reserved */
+	0,	     /* reserved */
+	0,	     /* reserved */
+	0,	     /* reserved */
+	svc_handler,   //__svc
+	0,	     /* reserved */
 #elif defined(CONFIG_ARMV7_M_ARMV8_M_MAINLINE)
-	mpu_fault_handler, //__mpu_fault
-	bus_fault_handler, //__bus_fault
-	usage_fault_handler, //__usage_fault
+	mpu_fault_handler,     //__mpu_fault
+	bus_fault_handler,     //__bus_fault
+	usage_fault_handler,   //__usage_fault
 #if defined(CONFIG_ARM_SECURE_FIRMWARE)
-	secure_fault_handler, //__secure_fault
+	secure_fault_handler,  //__secure_fault
 #else
 	0, /* reserved */
 #endif /* CONFIG_ARM_SECURE_FIRMWARE */
-	0, /* reserved */
-	0, /* reserved */
-	0, /* reserved */
-	svc_handler, //__svc
-	debug_monitor_handler, //debug_monitor
-#else /* ARM_ARCHITECTURE */
+	0,		       /* reserved */
+	0,		       /* reserved */
+	0,		       /* reserved */
+	svc_handler,	   //__svc
+	debug_monitor_handler, // debug_monitor
+#else  /* ARM_ARCHITECTURE */
 #error Unknown ARM architecture
-#endif /* CONFIG_ARMV6_M_ARMV8_M_BASELINE */
-	0, /* reserved */
+#endif			 /* CONFIG_ARMV6_M_ARMV8_M_BASELINE */
+	0,		 /* reserved */
 	pend_sv_handler, //__pendsv
 #if defined(CONFIG_CORTEX_M_SYSTICK)
 	sys_tick_handler, //_timer_int_handler
 #else
-	0, /* reserved */
+	0,		       /* reserved */
 #endif /* CONFIG_CORTEX_M_SYSTICK */
 };
 
 void _bss_zero(uint32_t *dest, uint32_t *end)
 {
-	while(dest < (uint32_t *) &end)
-	{
+	while (dest < (uint32_t *)&end) {
 		*dest++ = 0;
 	}
 }
 
 void _data_copy(uint32_t *src, uint32_t *dest, uint32_t *end)
 {
-	while(dest < (uint32_t *) &end)
-	{
+	while (dest < (uint32_t *)&end) {
 		*dest++ = *src++;
 	}
 }
@@ -142,20 +141,25 @@ void reset_handler(void)
 {
 	_bss_zero(&__bss_start, &__bss_end);
 	_data_copy(&_image_text_end, &__data_ram_start, &__data_ram_end);
-	#if defined(CONFIG_SECURE_BOOT_SYSTEM_INIT)
+#if defined(CONFIG_SECURE_BOOT_SYSTEM_INIT)
 	SystemInit(); /* Create define for system INIT */
-	#endif /* CONFIG_SECURE_BOOT TODO: Find a way to use select defines? */
+#endif /* CONFIG_SECURE_BOOT TODO: Find a way to use select defines? */
 	main();
-	while(1);
+	while (1)
+		;
 }
 
-/* TODO: Find a way to redefine the entry point from __start to reset handler? */
-void __start(void){
+/* TODO: Find a way to redefine the entry point from __start to reset handler?
+ */
+void __start(void)
+{
 	reset_handler();
 }
 
 void dummy_handler(void)
 {
-	/* Hang on unexpected interrupts as it's considered a bug in the program */
-	while(1);
+	/* Hang on unexpected interrupts as it's considered a bug in the program
+	 */
+	while (1)
+		;
 }
