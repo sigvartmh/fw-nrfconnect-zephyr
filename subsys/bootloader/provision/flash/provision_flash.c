@@ -6,12 +6,12 @@
 
 /* To avoid giving a pointer to the provisioned public keys, copy
  * the key material to this buffer, and return the pointer to it. */
-static uint8_t key_buf[128];
+static uint8_t key_buf[PK_SIZE];
 
 typedef struct {
 	uint32_t s0_address;
 	uint32_t s1_address;
-	uint8_t pkd[PK_SIZE * NUM_PK];
+	uint8_t  pkd[NUM_PK * PK_SIZE];
 } provision_flash_t;
 
 
@@ -32,7 +32,7 @@ uint32_t s1_address_read(void)
 	return provision_data.s1_address;
 }
 
-uint8_t * public_key_data_read(uint32_t key_index)
+const uint8_t * public_key_data_read(uint32_t key_index)
 {
 	uint32_t i = 0;
 	for(i = 0; i < PK_SIZE; ++i) {
