@@ -4,11 +4,15 @@
 
 # TODO: Add conditionals for debugging and SystemInit
 
-add_library(bootloader 
-	bootloader.c 
-	startup.c
+add_library(bootloader
+  bootloader.c
+  startup.c
+  provision/flash/provision_flash.c
+  )
 
-	)
+target_include_directories(bootloader PRIVATE
+  ${ZEPHYR_BASE}/subsys/bootloader/provision/include
+  )
 
 set(EXTS ${ZEPHYR_BASE}/ext)
 set(HAL ${EXTS}/hal)

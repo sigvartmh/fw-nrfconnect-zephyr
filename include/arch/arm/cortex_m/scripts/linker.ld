@@ -72,9 +72,17 @@ MEMORY
     {
 #ifdef LINKER_OUTPUT_NAME_bootloader
     FLASH                 (rx) : ORIGIN = CONFIG_FLASH_BASE_ADDRESS + FLASH_AREA_SECURE_BOOT_OFFSET_0, LENGTH = FLASH_AREA_SECURE_BOOT_SIZE_0
+    PROVISION             (rx) : ORIGIN = CONFIG_FLASH_BASE_ADDRESS + FLASH_AREA_PROVISION_OFFSET_0, LENGTH = FLASH_AREA_PROVISION_SIZE_0
+#else
+
+#ifdef CONFIG_SECURE_BOOT
+    FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE - FLASH_AREA_PROVISION_SIZE_0
 #else
     FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
-#endif
+#endif // CONFIG_SECURE_BOOT
+
+#endif // LINKER_OUTPUT_NAME_bootloader
+
 #ifdef CONFIG_TI_CCFG_PRESENT
     FLASH_CCFG            (rwx): ORIGIN = CCFG_ADDR, LENGTH = CCFG_SIZE
 #endif
@@ -94,6 +102,12 @@ SECTIONS
     GROUP_START(ROMABLE_REGION)
 
 	_image_rom_start = ROM_ADDR;
+#ifdef LINKER_OUTPUT_NAME_bootloader
+    provision :
+    {
+        KEEP(*(.PROVISION_DATA))
+    } > PROVISION
+#endif //LINKER_OUTPUT_NAME_bootloader 
 
     SECTION_PROLOGUE(_TEXT_SECTION_NAME,,)
 	{
