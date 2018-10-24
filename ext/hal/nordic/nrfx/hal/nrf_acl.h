@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 - 2018, Nordic Semiconductor ASA
+ * Copyright (c) 2014 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@
 extern "C" {
 #endif
 
-#define NRF_ACL_SIZE_MAX_VAL 512*1024
+#define NRF_ACL_REGION_SIZE_MAX (512 * 1024UL)
 
 /** @brief ACL permissions. */
 typedef enum
@@ -53,11 +53,11 @@ typedef enum
  *
  * Address must be word and page aligned. Size must be page aligned.
  *
- * @param[in] p_reg       Pointer to the peripheral register structure.
- * @param[in] region_id   ACL region index.
- * @param[in] address     Start address.
- * @param[in] size        Size of region to protect in bytes.
- * @param[in] perm        Permissions to set for region to protect.
+ * @param[in] p_reg     Pointer to the peripheral register structure.
+ * @param[in] region_id ACL region index.
+ * @param[in] address   Start address.
+ * @param[in] size      Size of region to protect in bytes.
+ * @param[in] perm      Permissions to set for region to protect.
  */
 __STATIC_INLINE void nrf_acl_region_set(NRF_ACL_Type * p_reg,
                                         uint32_t       region_id,
@@ -68,8 +68,8 @@ __STATIC_INLINE void nrf_acl_region_set(NRF_ACL_Type * p_reg,
 /**
  * @brief Function for getting the configured region address of a specific ACL region.
  *
- * @param[in] p_reg       Pointer to the peripheral register structure.
- * @param[in] region_id   ACL region index.
+ * @param[in] p_reg     Pointer to the peripheral register structure.
+ * @param[in] region_id ACL region index.
  *
  * @return Configured region address of given ACL region.
  */
@@ -78,8 +78,8 @@ __STATIC_INLINE uint32_t nrf_acl_region_address_get(NRF_ACL_Type * p_reg, uint32
 /**
  * @brief Function for getting the configured region size of a specific ACL region.
  *
- * @param[in] p_reg       Pointer to the peripheral register structure.
- * @param[in] region_id   ACL region index.
+ * @param[in] p_reg     Pointer to the peripheral register structure.
+ * @param[in] region_id ACL region index.
  *
  * @return Configured region size of given ACL region.
  */
@@ -88,8 +88,8 @@ __STATIC_INLINE size_t nrf_acl_region_size_get(NRF_ACL_Type * p_reg, uint32_t re
 /**
  * @brief Function for getting the configured region permissions of a specific ACL region.
  *
- * @param[in] p_reg       Pointer to the peripheral register structure.
- * @param[in] region_id   ACL region index.
+ * @param[in] p_reg     Pointer to the peripheral register structure.
+ * @param[in] region_id ACL region index.
  *
  * @return Configured region permissions of given ACL region.
  */
@@ -105,7 +105,7 @@ __STATIC_INLINE void nrf_acl_region_set(NRF_ACL_Type * p_reg,
 {
     NRFX_ASSERT(region_id < ACL_REGIONS_COUNT);
     NRFX_ASSERT(address % NRF_FICR->CODEPAGESIZE == 0);
-    NRFX_ASSERT(size <= NRF_ACL_SIZE_MAX_VAL);
+    NRFX_ASSERT(size <= NRF_ACL_REGION_SIZE_MAX);
     NRFX_ASSERT(size != 0);
 
     p_reg->ACL[region_id].ADDR = address;
