@@ -5,7 +5,6 @@
  */
 
 #include <sensor.h>
-#include <spinlock.h>
 
 #include <nrfx_qdec.h>
 #include <hal/nrf_gpio.h>
@@ -23,7 +22,6 @@
 
 
 struct qdec_nrfx_data {
-	struct k_spinlock        lock;
 	s32_t                    acc;
 	sensor_trigger_handler_t data_ready_handler;
 #ifdef CONFIG_DEVICE_POWER_MANAGEMENT
@@ -39,7 +37,7 @@ DEVICE_DECLARE(qdec_nrfx);
 
 static void accumulate(struct qdec_nrfx_data *data, int16_t acc)
 {
-	k_spinlock_key_t key = k_spin_lock(&data->lock);
+	unsigned int key = irq_lock();
 
 	bool overflow = ((acc > 0) && (ACC_MAX - acc < data->acc)) ||
 			((acc < 0) && (ACC_MIN - acc > data->acc));
@@ -48,7 +46,7 @@ static void accumulate(struct qdec_nrfx_data *data, int16_t acc)
 		data->acc += acc;
 	}
 
-	k_spin_unlock(&data->lock, key);
+	irq_unlock(key);
 }
 
 static int qdec_nrfx_sample_fetch(struct device *dev, enum sensor_channel chan)
@@ -78,7 +76,7 @@ static int qdec_nrfx_channel_get(struct device       *dev,
 				 struct sensor_value *val)
 {
 	struct qdec_nrfx_data *data = &qdec_nrfx_data;
-	k_spinlock_key_t key;
+	unsigned int key;
 	s32_t acc;
 
 	ARG_UNUSED(dev);
@@ -89,10 +87,10 @@ static int qdec_nrfx_channel_get(struct device       *dev,
 		return -ENOTSUP;
 	}
 
-	key = k_spin_lock(&data->lock);
+	key = irq_lock();
 	acc = data->acc;
 	data->acc = 0;
-	k_spin_unlock(&data->lock, key);
+	irq_unlock(key);
 
 	static_assert(CONFIG_QDEC_STEPS > 0, "only positive number valid");
 	static_assert(CONFIG_QDEC_STEPS <= 2148, "overflow possible");
@@ -112,7 +110,7 @@ static int qdec_nrfx_trigger_set(struct device               *dev,
 				 sensor_trigger_handler_t     handler)
 {
 	struct qdec_nrfx_data *data = &qdec_nrfx_data;
-	k_spinlock_key_t key;
+	unsigned int key;
 
 	ARG_UNUSED(dev);
 
@@ -127,9 +125,9 @@ static int qdec_nrfx_trigger_set(struct device               *dev,
 		return -ENOTSUP;
 	}
 
-	key = k_spin_lock(&data->lock);
+	key = irq_lock();
 	data->data_ready_handler = handler;
-	k_spin_unlock(&data->lock, key);
+	irq_unlock(key);
 
 	return 0;
 }
@@ -137,15 +135,15 @@ static int qdec_nrfx_trigger_set(struct device               *dev,
 static void qdec_nrfx_event_handler(nrfx_qdec_event_t event)
 {
 	sensor_trigger_handler_t handler;
-	k_spinlock_key_t key;
+	unsigned int key;
 
 	switch (event.type) {
 	case NRF_QDEC_EVENT_REPORTRDY:
 		accumulate(&qdec_nrfx_data, event.data.report.acc);
 
-		key = k_spin_lock(&qdec_nrfx_data.lock);
+		key = irq_lock();
 		handler = qdec_nrfx_data.data_ready_handler;
-		k_spin_unlock(&qdec_nrfx_data.lock, key);
+		irq_unlock(key);
 
 		if (handler) {
 			struct sensor_trigger trig = {
@@ -165,12 +163,12 @@ static void qdec_nrfx_event_handler(nrfx_qdec_event_t event)
 
 static void qdec_nrfx_gpio_ctrl(bool enable)
 {
-	if (CONFIG_QDEC_ENABLE_PIN != 0xFFFFFFFF) {
-		uint32_t val = (enable)?(0):(1);
+#if defined(CONFIG_QDEC_ENABLE_PIN)
+	uint32_t val = (enable)?(0):(1);
 
-		nrf_gpio_pin_write(CONFIG_QDEC_ENABLE_PIN, val);
-		nrf_gpio_cfg_output(CONFIG_QDEC_ENABLE_PIN);
-	}
+	nrf_gpio_pin_write(CONFIG_QDEC_ENABLE_PIN, val);
+	nrf_gpio_cfg_output(CONFIG_QDEC_ENABLE_PIN);
+#endif
 }
 
 static int qdec_nrfx_init(struct device *dev)
@@ -180,7 +178,11 @@ static int qdec_nrfx_init(struct device *dev)
 		.sampleper          = NRF_QDEC_SAMPLEPER_2048us,
 		.psela              = CONFIG_QDEC_A_PIN,
 		.pselb              = CONFIG_QDEC_B_PIN,
+#if defined(CONFIG_QDEC_LED_PIN)
 		.pselled            = CONFIG_QDEC_LED_PIN,
+#else
+		.pselled            = 0xFFFFFFFF, /* disabled */
+#endif
 		.ledpre             = CONFIG_QDEC_LED_PRE,
 		.ledpol             = NRF_QDEC_LEPOL_ACTIVE_HIGH,
 		.interrupt_priority = NRFX_QDEC_CONFIG_IRQ_PRIORITY,
@@ -221,9 +223,9 @@ static int qdec_nrfx_init(struct device *dev)
 static int qdec_nrfx_pm_get_state(struct qdec_nrfx_data *data,
 				  u32_t                 *state)
 {
-	k_spinlock_key_t key = k_spin_lock(&data->lock);
+	unsigned int key = irq_lock();
 	*state = data->pm_state;
-	k_spin_unlock(&data->lock, key);
+	irq_unlock(key);
 
 	return 0;
 }
@@ -232,10 +234,11 @@ static int qdec_nrfx_pm_set_state(struct qdec_nrfx_data *data,
 				  u32_t                  new_state)
 {
 	u32_t old_state;
+	unsigned int key;
 
-	k_spinlock_key_t key = k_spin_lock(&data->lock);
+	key = irq_lock();
 	old_state = data->pm_state;
-	k_spin_unlock(&data->lock, key);
+	irq_unlock(key);
 
 	if (old_state == new_state) {
 		/* leave unchanged */
@@ -259,9 +262,9 @@ static int qdec_nrfx_pm_set_state(struct qdec_nrfx_data *data,
 	}
 
 	/* record the new state */
-	key = k_spin_lock(&data->lock);
+	key = irq_lock();
 	data->pm_state = new_state;
-	k_spin_unlock(&data->lock, key);
+	irq_unlock(key);
 
 	return 0;
 }

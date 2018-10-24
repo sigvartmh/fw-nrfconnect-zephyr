@@ -5,7 +5,6 @@
 #
 ---
 title: Nordic nRF Family QDEC node
-id: nordic,nrf-qdec
 version: 0.1
 
 description: >
@@ -44,15 +43,15 @@ properties:
 
     led-pin:
       type: int
-      description: LED pin for light based QDEC device (0xFFFFFFFF if unused)
+      description: LED pin for light based QDEC device
       generation: define
-      category: required
+      category: optional
 
     enable-pin:
       type: int
-      description: Enables connected QDEC device (0xFFFFFFFF if unused)
+      description: Enables connected QDEC device
       generation: define
-      category: required
+      category: optional
 
     led-pre:
       type: int
