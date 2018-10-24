@@ -103,7 +103,6 @@ Revision: $Rev: 9599 $
 *       This is may be required with memory access restrictions, 
 *       such as on Cortex-A devices with MMU.
 */
-#error Test
 #if defined CONFIG_SB_SEGGER_RTT_MEMCPY_USE_BYTELOOP
 #define SEGGER_RTT_MEMCPY_USE_BYTELOOP              1 // 1: Use a simple byte-loop
 #else
