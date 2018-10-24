@@ -6,8 +6,6 @@
 
 add_library(bootloader 
 	bootloader.c 
-	startup.c
-
 	)
 
 set(EXTS ${ZEPHYR_BASE}/ext)
@@ -21,32 +19,38 @@ add_dependencies(bootloader offsets_h)
 
 target_link_libraries(bootloader zephyr_interface)
 
+target_sources_ifdef(CONFIG_SB_CUSTOM_BOOT
+	bootloader
+	PRIVATE
+	startup.c
+	)
+
 # Nordic specific for startup code
-target_sources_ifdef(CONFIG_SECURE_BOOT_SYSTEM_INIT
+target_sources_ifdef(CONFIG_SB_SYSTEM_INIT
 	bootloader
 	PRIVATE
 	${HAL}/nordic/nrfx/mdk/system_nrf52840.c
 	)
 
 # SEGGER files for DEBUG
-target_include_directories_ifdef(CONFIG_SECURE_BOOT_DEBUG
+target_include_directories_ifdef(CONFIG_SB_SEGGER_RTT
 	bootloader
 	PRIVATE
-	${SEGGER}/rtt
+	rtt
 	${STD_INCLUDE}
 	)
 
-target_sources_ifdef(CONFIG_SECURE_BOOT_DEBUG
+target_sources_ifdef(CONFIG_SB_SEGGER_RTT
 	bootloader
 	PRIVATE
 	${SEGGER}/rtt/SEGGER_RTT.c
 	${SEGGER}/rtt/SEGGER_RTT_printf.c
-	${SEGGER}/rtt/SEGGER_RTT_Conf_sb.h
-	${SEGGER}/rtt/SEGGER_RTT_sb.h
+	rtt/SEGGER_RTT_Conf_sb.h
+	rtt/SEGGER_RTT_sb.h
 	)
 
 # CONFIG_USE_C_LIB
-target_sources_ifdef(CONFIG_SECURE_BOOT_DEBUG
+target_sources_ifdef(CONFIG_SB_SEGGER_RTT
 	bootloader
 	PRIVATE
 	${STD_SOURCE}/stdlib/atoi.c

@@ -2,9 +2,12 @@
 #include <nrf.h>
 #include <generated_dts_board.h>
 
-#ifdef CONFIG_SECURE_BOOT_DEBUG
+#ifdef CONFIG_SB_SEGGER_RTT
 #include <SEGGER_RTT_sb.h>
-#endif /* SEGGER_DEBUG */
+#endif /* CONFIG_SB_SEGGER_RTT */
+
+
+#define debug_print(fmt, ...) do{if(CONFIG_SB_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
 
 #define LED1_GPIO (GPIO_LEDS_LED_0_GPIO_PIN)
 #define LED2_GPIO (GPIO_LEDS_LED_1_GPIO_PIN)
@@ -15,6 +18,7 @@
 #define BUTTON2_GPIO (GPIO_KEYS_BUTTON_1_GPIO_PIN)
 #define BUTTON3_GPIO (GPIO_KEYS_BUTTON_2_GPIO_PIN)
 #define BUTTON4_GPIO (GPIO_KEYS_BUTTON_3_GPIO_PIN)
+
 
 #define EnablePrivilegedMode() __asm("SVC #0")
 
@@ -90,64 +94,46 @@ void button_init(void)
 	config_input(BUTTON4_GPIO);
 }
 
+/* Todo: find a better way to do this */
+uint32_t button1 = 50597888;
+uint32_t button2 = 50595840;
+uint32_t button3 = 33822720;
+uint32_t button4 = 17045504;
+
+static void inline _delay(uint32_t volatile tmr){
+	while(tmr--);
+}
+
 int main(void)
 {
-
-#ifdef CONFIG_SECURE_BOOT_DEBUG
-	SEGGER_RTT_Init();
-#endif /* SEGGER_DEBUG */
-
-	led_init();
+	uint32_t volatile input;
 	button_init();
-
+#ifdef CONFIG_SB_SEGGER_RTT
+	SEGGER_RTT_Init();
+#endif /* CONFIG_SB_SEGGER_RTT */
 
 	/* TODO: Clean up button and led  configurations before jump */
-
-	while (1) {
-		uint32_t volatile input;
-
-		input = (NRF_GPIO->IN >> BUTTON1_GPIO) & 1UL;
-		if (input) {
-			NRF_GPIO->OUTSET = (1UL << LED1_GPIO);
-		} else {
-#ifdef CONFIG_SECURE_BOOT_DEBUG
-			SEGGER_RTT_printf(0, "Tried to boot from area s0\r\n");
-#endif /* SEGGER_DEBUG */
-			NRF_GPIO->OUTCLR = (1UL << LED1_GPIO);
-			boot_from((uint32_t *)(0x00000000
-					       + FLASH_AREA_S0_OFFSET));
-		}
-		input = (NRF_GPIO->IN >> BUTTON2_GPIO) & 1UL;
-		if (input) {
-			NRF_GPIO->OUTSET = (1UL << LED2_GPIO);
-		} else {
-
-#ifdef CONFIG_SECURE_BOOT_DEBUG
-			SEGGER_RTT_printf(0, "Tried to boot from area s1\r\n");
-#endif /* SEGGER_DEBUG */
-			NRF_GPIO->OUTCLR = (1UL << LED2_GPIO);
-			boot_from((uint32_t *)(0x00000000
-					       + FLASH_AREA_S1_OFFSET));
-		}
-		input = (NRF_GPIO->IN >> BUTTON3_GPIO) & 1UL;
-		if (input) {
-			NRF_GPIO->OUTSET = (1UL << LED3_GPIO);
-		} else {
-			NRF_GPIO->OUTCLR = (1UL << LED3_GPIO);
-#ifdef CONFIG_SECURE_BOOT_DEBUG
-			SEGGER_RTT_printf(0, "Tried to boot from app area\r\n");
-#endif /* SEGGER_DEBUG */
-			boot_from((uint32_t *)(0x00000000
-					       + FLASH_AREA_APP_OFFSET));
-		}
-
-		uint32_t volatile tm0 = 1000000;
-		while (tm0--)
-			;
-		NRF_GPIO->OUTSET = (1UL << LED4_GPIO);
-		tm0 = 1000000;
-		while (tm0--)
-			;
-		NRF_GPIO->OUTCLR = (1UL << LED4_GPIO);
+	debug_print("%s\n","Bootloader started");
+	/* Add small delay to let RTT print out */
+   	_delay(10000000);
+	input = ((NRF_GPIO->IN >> BUTTON1_GPIO) & 1UL);
+	if(input){
+		debug_print("%s\n","Boot from area s0");
+   		_delay(10000000);	
+		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S0_OFFSET));
 	}
+	input = ((NRF_GPIO->IN >> BUTTON2_GPIO) & 1UL);
+	if(input){
+		debug_print("%s\n","Boot from area s1");
+   		_delay(10000000);	
+		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
+	}
+	input = ((NRF_GPIO->IN >> BUTTON3_GPIO) & 1UL);
+	if(input){
+		debug_print("%s\n","Boot from app");
+   		_delay(10000000);	
+		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
+	}
+
+	return 0;
 }
