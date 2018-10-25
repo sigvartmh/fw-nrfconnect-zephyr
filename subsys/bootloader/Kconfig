@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-config SECURE_BOOT 
+config SECURE_BOOT
 	bool "Secure Boot Support"
 
 if SECURE_BOOT
@@ -22,6 +22,21 @@ endchoice
 config SB_SYSTEM_INIT
 	bool "Boot with chip specific initialization"
 	#select SYSTEM_INIT
+
+choice SB_SIG_ALGORITHM
+	prompt "Signature algorithm to use for verification of firmware."
+	default SB_SIG_ALGORITHM_ECDSA_SECP256
+	config SB_SIG_ALGORITHM_ECDSA_SECP256
+		bool "ECDSA with NIST curve secp256r1"
+
+	config SB_SIG_ALGORITHM_RSA_2048
+		bool "RSASSA-PSS, 2048 bits"
+endchoice
+
+config SB_SIG_LEN
+	int
+	default 32 if SB_SIG_ALGORITHM_ECDSA_SECP256
+	default 256 if SB_SIG_ALGORITHM_RSA_2048
 
 config SECURE_BOOT_DEBUG
 	bool "Debugging support"
@@ -75,7 +90,7 @@ choice
 endchoice
 
 config SB_SEGGER_RTT_MODE
-	int 
+	int
 	default 2 if SB_SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL
 	default 1 if SB_SEGGER_RTT_MODE_NO_BLOCK_TRIM
 	default 0
@@ -84,4 +99,4 @@ config SB_SEGGER_RTT_MEMCPY_USE_BYTELOOP
 	bool "Use a simple byte-loop instead of standard memcpy"
 endif
 
-endif 
+endif
