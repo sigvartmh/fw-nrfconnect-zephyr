@@ -2,9 +2,13 @@
 #include <nrf.h>
 #include <generated_dts_board.h>
 
+
 #ifdef CONFIG_SB_SEGGER_RTT
 #include <SEGGER_RTT_sb.h>
 #define debug_print(fmt, ...) do{if(CONFIG_SB_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
+#elif defined(CONFIG_SB_UART)
+#include "uart.h"
+#define debug_print(fmt, ...) do{if(CONFIG_SB_UART){uart_printf(fmt, __VA_ARGS__);}}while(0)
 #else
 #define debug_print(...) do{}while(0)
 #endif /* CONFIG_SB_SEGGER_RTT */
@@ -22,6 +26,11 @@
 #define BUTTON2_GPIO (GPIO_KEYS_BUTTON_1_GPIO_PIN)
 #define BUTTON3_GPIO (GPIO_KEYS_BUTTON_2_GPIO_PIN)
 #define BUTTON4_GPIO (GPIO_KEYS_BUTTON_3_GPIO_PIN)
+
+#define BUTTON3 0x2041800
+#define BUTTON1 0x3041000
+#define BUTTON2 0x3040800
+#define BUTTON4 0x1041800
 
 
 #define EnablePrivilegedMode() __asm("SVC #0")
@@ -98,26 +107,27 @@ void button_init(void)
 	config_input(BUTTON4_GPIO);
 }
 
-/* Todo: find a better way to do this */
-uint32_t button1 = 50597888;
-uint32_t button2 = 50595840;
-uint32_t button3 = 33822720;
-uint32_t button4 = 17045504;
 
 static void inline _delay(uint32_t volatile tmr){
 	while(tmr--);
 }
 
+
 int main(void)
 {
+<<<<<<< HEAD
 	uint32_t volatile input;
 #if CONFIG_SB_FLASH_LOCKDOWN
 	lock_area(FLASH_AREA_SECURE_BOOT_OFFSET, FLASH_AREA_SECURE_BOOT_SIZE);
 #endif //CONFIG_SB_FLASH_LOCKDOWN
+=======
+>>>>>>> Add uart support and hold button restart boot functionality
 	button_init();
+	//debug_print("%s\r\n", "Start BL");
 #ifdef CONFIG_SB_SEGGER_RTT
 	SEGGER_RTT_Init();
 #endif /* CONFIG_SB_SEGGER_RTT */
+<<<<<<< HEAD
 
 	/* TODO: Clean up button and led  configurations before jump */
 	debug_print("%s\n","Bootloader started");
@@ -139,6 +149,23 @@ int main(void)
 	if(input){
 		debug_print("%s\n","Boot from app");
 		_delay(10000000);
+=======
+#ifdef CONFIG_SB_UART
+	uart_init();
+#endif /* CONFIG_SB_UART */
+	
+	uint32_t volatile input = NRF_GPIO->IN;
+	if(input == BUTTON1){
+		debug_print("%s\n\r","Boot from area s0");
+		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S0_OFFSET));
+	}
+	else if(input == BUTTON2){
+		debug_print("%s\n\r","Boot from area s1");
+		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
+	}
+	else if(input == BUTTON3){
+		debug_print("%s\n\r","Boot from app");
+>>>>>>> Add uart support and hold button restart boot functionality
 		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	}
 

@@ -68,19 +68,25 @@ target_sources_ifdef(CONFIG_SB_SEGGER_RTT
   rtt/SEGGER_RTT_sb.h
   )
 
-# CONFIG_USE_C_LIB
-target_sources_ifdef(CONFIG_SB_SEGGER_RTT
-  bootloader
-  PRIVATE
-  ${STD_SOURCE}/stdlib/atoi.c
-  ${STD_SOURCE}/stdlib/strtol.c
-  ${STD_SOURCE}/stdlib/strtoul.c
-  ${STD_SOURCE}/stdlib/malloc.c
-  ${STD_SOURCE}/string/strncasecmp.c
-  ${STD_SOURCE}/string/strstr.c
-  ${STD_SOURCE}/string/string.c
-  ${STD_SOURCE}/stdout/prf.c
-  ${STD_SOURCE}/stdout/stdout_console.c
-  ${STD_SOURCE}/stdout/sprintf.c
-  ${STD_SOURCE}/stdout/fprintf.c
-  )
+target_sources_ifdef(CONFIG_SB_UART
+	bootloader
+	PRIVATE
+	uart.h	
+	uart.c
+	)
+
+target_sources_ifdef(CONFIG_SECURE_BOOT_DEBUG
+	bootloader
+	PRIVATE
+	${STD_SOURCE}/stdlib/atoi.c
+	${STD_SOURCE}/stdlib/strtol.c
+	${STD_SOURCE}/stdlib/strtoul.c
+	${STD_SOURCE}/stdlib/malloc.c
+	${STD_SOURCE}/string/strncasecmp.c
+	${STD_SOURCE}/string/strstr.c
+	${STD_SOURCE}/string/string.c
+	${STD_SOURCE}/stdout/prf.c
+	${STD_SOURCE}/stdout/stdout_console.c
+	${STD_SOURCE}/stdout/sprintf.c
+	${STD_SOURCE}/stdout/fprintf.c
+	)
