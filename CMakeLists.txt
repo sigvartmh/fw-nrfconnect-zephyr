@@ -1339,7 +1339,6 @@ if(CONFIG_SECURE_BOOT)
     COMMAND ${CMAKE_OBJCOPY}
     -S
     -Oihex
-    --gap-fill 0xFF
     -R .comment
     -R COMMON
     -R .eh_frame
@@ -1362,12 +1361,16 @@ if(CONFIG_SECURE_BOOT)
   # Create custom command for merging all files in the list.
   add_custom_command(
     OUTPUT merged.hex
-    COMMAND mergehex
-    -m ${my_hex_files}
+    COMMAND
+    ${PYTHON_EXECUTABLE}
+    ${ZEPHYR_BASE}/scripts/mergehex.py
+    -i ${my_hex_files}
     -o merged.hex
     DEPENDS ${my_hex_targets}
     )
+
   add_custom_target(merged_hex ALL DEPENDS merged.hex)
+
   if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
     set(option ${LINKERFLAGPREFIX},--print-memory-usage)
     string(MAKE_C_IDENTIFIER check${option} check)
