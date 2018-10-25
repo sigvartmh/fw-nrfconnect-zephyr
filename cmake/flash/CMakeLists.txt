@@ -25,14 +25,19 @@ if(RUNNERS)
   # board_runner_args().
   #
   # Always applicable:
-  set(ZEPHYR_RUNNER_CONFIG_BOARD_DIR "${BOARD_DIR}"
-    CACHE STRING "Board definition directory" FORCE)
-  set(ZEPHYR_RUNNER_CONFIG_KERNEL_ELF "${PROJECT_BINARY_DIR}/${KERNEL_ELF_NAME}"
-    CACHE STRING "Path to kernel image in ELF format" FORCE)
-  set(ZEPHYR_RUNNER_CONFIG_KERNEL_HEX "${PROJECT_BINARY_DIR}/${KERNEL_HEX_NAME}"
-    CACHE STRING "Path to kernel image in Intel Hex format" FORCE)
-  set(ZEPHYR_RUNNER_CONFIG_KERNEL_BIN "${PROJECT_BINARY_DIR}/${KERNEL_BIN_NAME}"
-    CACHE STRING "Path to kernel image as raw binary" FORCE)
+    set(ZEPHYR_RUNNER_CONFIG_BOARD_DIR "${BOARD_DIR}"
+      CACHE STRING "Board definition directory" FORCE)
+  if(CONFIG_SECURE_BOOT)
+    set(ZEPHYR_RUNNER_CONFIG_KERNEL_HEX "${PROJECT_BINARY_DIR}/merged.hex"
+      CACHE STRING "Path to kernel image in Intel Hex format" FORCE)
+  else()
+    set(ZEPHYR_RUNNER_CONFIG_KERNEL_ELF "${PROJECT_BINARY_DIR}/${KERNEL_ELF_NAME}"
+      CACHE STRING "Path to kernel image in ELF format" FORCE)
+    set(ZEPHYR_RUNNER_CONFIG_KERNEL_HEX "${PROJECT_BINARY_DIR}/${KERNEL_HEX_NAME}"
+      CACHE STRING "Path to kernel image in Intel Hex format" FORCE)
+    set(ZEPHYR_RUNNER_CONFIG_KERNEL_BIN "${PROJECT_BINARY_DIR}/${KERNEL_BIN_NAME}"
+      CACHE STRING "Path to kernel image as raw binary" FORCE)
+  endif() # CONFIG_SECURE_BOOT
   # Not always applicable, but so often needed that they're provided
   # by default: (TODO: clean this up)
   if(DEFINED CMAKE_GDB)
