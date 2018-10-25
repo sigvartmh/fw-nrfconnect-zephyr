@@ -4,13 +4,14 @@
 
 #ifdef CONFIG_SB_SEGGER_RTT
 #include <SEGGER_RTT_sb.h>
+#define debug_print(fmt, ...) do{if(CONFIG_SB_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
+#else
+#define debug_print(...) do{}while(0)
 #endif /* CONFIG_SB_SEGGER_RTT */
 
 #ifdef CONFIG_SB_FLASH_LOCKDOWN
 #include <lockdown.h>
 #endif
-
-#define debug_print(fmt, ...) do{if(CONFIG_SB_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
 
 #define LED1_GPIO (GPIO_LEDS_LED_0_GPIO_PIN)
 #define LED2_GPIO (GPIO_LEDS_LED_1_GPIO_PIN)
