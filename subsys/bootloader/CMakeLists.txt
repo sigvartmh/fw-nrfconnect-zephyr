@@ -14,6 +14,8 @@ set(SEGGER ${EXTS}/debug/segger)
 set(STD_LIB_C ${ZEPHYR_BASE}/lib/libc/minimal)
 set(STD_SOURCE ${STD_LIB_C}/source)
 set(STD_INCLUDE ${STD_LIB_C}/include)
+set(ARM ${ZEPHYR_BASE}/arch/arm/core)
+set(CORTEX_M ${ARM}/cortex_m)
 
 add_dependencies(bootloader offsets_h)
 
@@ -44,6 +46,22 @@ if (CONFIG_SB_FLASH_LOCKDOWN)
     ${LOCKDOWN_SRC})
 endif ()
 
+target_sources_ifdef(CONFIG_SB_ZEPHYR_BOOT
+	bootloader
+	PRIVATE
+	${CORTEX_M}/vector_table.S
+	${CORTEX_M}/reset.S
+	${CORTEX_M}/prep_c.c
+	${CORTEX_M}/vector_table.h
+	)
+
+target_include_directories_ifdef(CONFIG_SB_ZEPHYR_BOOT
+	bootloader
+	PRIVATE
+	${CORTEX_M}
+	)
+
+
 # Nordic specific for startup code
 target_sources_ifdef(CONFIG_SB_SYSTEM_INIT
   bootloader
@@ -71,8 +89,14 @@ target_sources_ifdef(CONFIG_SB_SEGGER_RTT
 target_sources_ifdef(CONFIG_SB_UART
 	bootloader
 	PRIVATE
-	uart.h	
-	uart.c
+	uart/uart.h	
+	uart/uart.c
+	)
+
+target_include_directories_ifdef(CONFIG_SB_UART
+	bootloader
+	PRIVATE
+	uart
 	)
 
 target_sources_ifdef(CONFIG_SECURE_BOOT_DEBUG

@@ -104,7 +104,9 @@ extern FUNC_NORETURN void _Cstart(void);
  *
  * @return N/A
  */
-
+#ifdef CONFIG_SB_ZEPHYR_BOOT
+extern int main();
+#endif /* CONFIG_SB_ZEPHYR_BOOT */
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
 	extern u64_t __start_time_stamp;
 #endif
@@ -117,6 +119,8 @@ void _PrepC(void)
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
 	__start_time_stamp = 0;
 #endif
-	_Cstart();
+#ifdef CONFIG_SB_ZEPHYR_BOOT
+	main();
+#else
 	CODE_UNREACHABLE;
 }
