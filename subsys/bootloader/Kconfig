@@ -8,6 +8,8 @@ config SECURE_BOOT
 
 if SECURE_BOOT
 
+menu "Secure Boot Options"
+
 choice
 	prompt "Startup code selection"
 	default SB_CUSTOM_BOOT
@@ -18,6 +20,10 @@ choice
 	config SB_MDK_BOOT
 		bool "MDK assembly boot process"
 endchoice
+
+config SB_FLASH_LOCKDOWN
+	bool "Lock down flash before jumping to next stage."
+    default y
 
 config SB_SYSTEM_INIT
 	bool "Boot with chip specific initialization"
@@ -98,5 +104,7 @@ config SB_SEGGER_RTT_MODE
 config SB_SEGGER_RTT_MEMCPY_USE_BYTELOOP
 	bool "Use a simple byte-loop instead of standard memcpy"
 endif
+
+endmenu
 
 endif

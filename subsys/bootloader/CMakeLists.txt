@@ -20,10 +20,28 @@ add_dependencies(bootloader offsets_h)
 target_link_libraries(bootloader zephyr_interface)
 
 target_sources_ifdef(CONFIG_SB_CUSTOM_BOOT
-	bootloader
-	PRIVATE
-	startup.c
-	)
+  bootloader
+  PRIVATE
+  startup.c
+  )
+
+if (CONFIG_SB_FLASH_LOCKDOWN)
+  # Find out which lockdown should be used
+  if (CONFIG_HAS_HW_NRF_ACL)
+    set(LOCKDOWN_SRC lockdown/lockdown_acl.c)
+  elseif (CONFIG_HAS_HW_BPROT)
+    set(LOCKDOWN_SRC lockdown/lockdown_bprot.c)
+  elseif (CONFIG_HAS_HW_NRF_SPU)
+    set(LOCKDOWN_SRC lockdown/lockdown_spu.c)
+  else()
+    message(FATAL_ERROR "No lockdown backend selected.")
+  endif()
+
+  target_sources(
+    bootloader
+    PRIVATE
+    ${LOCKDOWN_SRC})
+endif ()
 
 # Nordic specific for startup code
 target_sources_ifdef(CONFIG_SB_SYSTEM_INIT

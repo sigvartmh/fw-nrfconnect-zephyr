@@ -6,6 +6,9 @@
 #include <SEGGER_RTT_sb.h>
 #endif /* CONFIG_SB_SEGGER_RTT */
 
+#ifdef CONFIG_SB_FLASH_LOCKDOWN
+#include <lockdown.h>
+#endif
 
 #define debug_print(fmt, ...) do{if(CONFIG_SB_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
 
@@ -75,6 +78,9 @@ static void boot_from(uint32_t *address)
 
 	__enable_irq();
 	__set_MSP(address[0]);
+#if CONFIG_SB_FLASH_LOCKDOWN
+   lock_area(FLASH_AREA_SECURE_BOOT_OFFSET, FLASH_AREA_SECURE_BOOT_SIZE);
+#endif //CONFIG_SB_FLASH_LOCKDOWN
 	((void (*)(void))address[1])();
 }
 
