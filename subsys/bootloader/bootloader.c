@@ -111,7 +111,7 @@ int main(void)
 {
 	uint32_t volatile input;
 #if CONFIG_SB_FLASH_LOCKDOWN
-   lock_area(FLASH_AREA_SECURE_BOOT_OFFSET, FLASH_AREA_SECURE_BOOT_SIZE);
+	lock_area(FLASH_AREA_SECURE_BOOT_OFFSET, FLASH_AREA_SECURE_BOOT_SIZE);
 #endif //CONFIG_SB_FLASH_LOCKDOWN
 	button_init();
 #ifdef CONFIG_SB_SEGGER_RTT
@@ -121,23 +121,23 @@ int main(void)
 	/* TODO: Clean up button and led  configurations before jump */
 	debug_print("%s\n","Bootloader started");
 	/* Add small delay to let RTT print out */
-   	_delay(10000000);
+	_delay(10000000);
 	input = ((NRF_GPIO->IN >> BUTTON1_GPIO) & 1UL);
 	if(input){
 		debug_print("%s\n","Boot from area s0");
-   		_delay(10000000);
+		_delay(10000000);
 		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S0_OFFSET));
 	}
 	input = ((NRF_GPIO->IN >> BUTTON2_GPIO) & 1UL);
 	if(input){
 		debug_print("%s\n","Boot from area s1");
-   		_delay(10000000);
+		_delay(10000000);
 		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
 	}
 	input = ((NRF_GPIO->IN >> BUTTON3_GPIO) & 1UL);
 	if(input){
 		debug_print("%s\n","Boot from app");
-   		_delay(10000000);
+		_delay(10000000);
 		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	}
 
