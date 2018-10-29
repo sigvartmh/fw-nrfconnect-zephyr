@@ -49,11 +49,24 @@ endif ()
 target_sources_ifdef(CONFIG_SB_ZEPHYR_BOOT
 	bootloader
 	PRIVATE
+	${CORTEX_M}/vector_table.h
 	${CORTEX_M}/vector_table.S
 	${CORTEX_M}/reset.S
 	${CORTEX_M}/prep_c.c
-	${CORTEX_M}/vector_table.h
+	${ZEPHYR_BASE}/kernel/init.c
+	${ARM}/fault_s.S
+	${ARM}/swap_helper.S
+	${CORTEX_M}/nmi.c
+	${CORTEX_M}/nmi_on_reset.S
 	)
+
+
+target_sources_ifdef(CONFIG_SB_MDK_BOOT
+	bootloader
+	PRIVATE
+	startup/gcc_startup_nrf52840.S
+	)
+
 
 target_include_directories_ifdef(CONFIG_SB_ZEPHYR_BOOT
 	bootloader

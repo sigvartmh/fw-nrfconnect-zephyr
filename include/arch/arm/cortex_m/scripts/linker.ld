@@ -87,6 +87,10 @@ MEMORY
     IDT_LIST  (wx)      : ORIGIN = (RAM_ADDR + RAM_SIZE), LENGTH = 2K
     }
 
+#if defined(LINKER_OUTPUT_NAME_bootloader) && defined(CONFIG_SB_MDK_BOOT)
+INCLUDE "nrf_common.ld"
+#else
+
 ENTRY(CONFIG_KERNEL_ENTRY)
 
 SECTIONS
@@ -477,3 +481,4 @@ SECTIONS
 	}
 
     }
+#endif /* CONFIG_SB_MDK_BOOT && LINKER_OUTPUTNAME_bootloader */
