@@ -33,6 +33,7 @@
 #define LOCKDOWN_H_
 
 #include <stdint.h>
+#include <string.h>
 
 /* Protect specified area */
 void lock_area(uint32_t start, size_t length);

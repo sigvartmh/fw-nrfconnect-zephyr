@@ -4,9 +4,9 @@
 
 # TODO: Add conditionals for debugging and SystemInit
 
-add_library(bootloader 
-	bootloader.c 
-	)
+add_library(bootloader
+  bootloader.c
+  )
 
 set(EXTS ${ZEPHYR_BASE}/ext)
 set(HAL ${EXTS}/hal)
@@ -26,6 +26,7 @@ target_sources_ifdef(CONFIG_SB_CUSTOM_BOOT
   )
 
 if (CONFIG_SB_FLASH_LOCKDOWN)
+  target_include_directories(bootloader PRIVATE lockdown/include)
   # Find out which lockdown should be used
   if (CONFIG_HAS_HW_NRF_SPU)
     set(LOCKDOWN_SRC lockdown/lockdown_spu.c)
@@ -45,41 +46,41 @@ endif ()
 
 # Nordic specific for startup code
 target_sources_ifdef(CONFIG_SB_SYSTEM_INIT
-	bootloader
-	PRIVATE
-	${HAL}/nordic/nrfx/mdk/system_nrf52840.c
-	)
+  bootloader
+  PRIVATE
+  ${HAL}/nordic/nrfx/mdk/system_nrf52840.c
+  )
 
 # SEGGER files for DEBUG
 target_include_directories_ifdef(CONFIG_SB_SEGGER_RTT
-	bootloader
-	PRIVATE
-	rtt
-	${STD_INCLUDE}
-	)
+  bootloader
+  PRIVATE
+  rtt
+  ${STD_INCLUDE}
+  )
 
 target_sources_ifdef(CONFIG_SB_SEGGER_RTT
-	bootloader
-	PRIVATE
-	${SEGGER}/rtt/SEGGER_RTT.c
-	${SEGGER}/rtt/SEGGER_RTT_printf.c
-	rtt/SEGGER_RTT_Conf_sb.h
-	rtt/SEGGER_RTT_sb.h
-	)
+  bootloader
+  PRIVATE
+  ${SEGGER}/rtt/SEGGER_RTT.c
+  ${SEGGER}/rtt/SEGGER_RTT_printf.c
+  rtt/SEGGER_RTT_Conf_sb.h
+  rtt/SEGGER_RTT_sb.h
+  )
 
 # CONFIG_USE_C_LIB
 target_sources_ifdef(CONFIG_SB_SEGGER_RTT
-	bootloader
-	PRIVATE
-	${STD_SOURCE}/stdlib/atoi.c
-	${STD_SOURCE}/stdlib/strtol.c
-	${STD_SOURCE}/stdlib/strtoul.c
-	${STD_SOURCE}/stdlib/malloc.c
-	${STD_SOURCE}/string/strncasecmp.c
-	${STD_SOURCE}/string/strstr.c
-	${STD_SOURCE}/string/string.c
-	${STD_SOURCE}/stdout/prf.c
-	${STD_SOURCE}/stdout/stdout_console.c
-	${STD_SOURCE}/stdout/sprintf.c
-	${STD_SOURCE}/stdout/fprintf.c
-	)
+  bootloader
+  PRIVATE
+  ${STD_SOURCE}/stdlib/atoi.c
+  ${STD_SOURCE}/stdlib/strtol.c
+  ${STD_SOURCE}/stdlib/strtoul.c
+  ${STD_SOURCE}/stdlib/malloc.c
+  ${STD_SOURCE}/string/strncasecmp.c
+  ${STD_SOURCE}/string/strstr.c
+  ${STD_SOURCE}/string/string.c
+  ${STD_SOURCE}/stdout/prf.c
+  ${STD_SOURCE}/stdout/stdout_console.c
+  ${STD_SOURCE}/stdout/sprintf.c
+  ${STD_SOURCE}/stdout/fprintf.c
+  )
