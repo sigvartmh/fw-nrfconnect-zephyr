@@ -1306,7 +1306,25 @@ add_custom_command(
   COMMENT "Generating files from zephyr.elf for board: ${BOARD}"
   # NB: COMMENT only works for some CMake-Generators
 )
+# To populate with hex files to merge, do the following:
+#  set_property(GLOBAL APPEND PROPERTY HEX_FILES_TO_MERGE ${my_local_list})
+get_property(HEX_FILES_TO_MERGE GLOBAL PROPERTY HEX_FILES_TO_MERGE)
+if(HEX_FILES_TO_MERGE)
+  # Merge in out-of-tree hex files.
+  set(MERGED_HEX_NAME merged.hex)
 
+  add_custom_command(
+    OUTPUT ${MERGED_HEX_NAME}
+    COMMAND
+    ${PYTHON_EXECUTABLE}
+    ${ZEPHYR_BASE}/scripts/mergehex.py
+    -i ${HEX_FILES_TO_MERGE}
+    -o ${MERGED_HEX_NAME}
+    DEPENDS ${HEX_FILES_TO_MERGE} ${logical_target_for_zephyr_elf}
+    )
+
+  add_custom_target(mergehex ALL DEPENDS ${MERGED_HEX_NAME})
+endif()
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   # Use --print-memory-usage with the first link.
