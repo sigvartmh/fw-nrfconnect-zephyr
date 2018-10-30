@@ -90,8 +90,8 @@ MEMORY
 #if defined(LINKER_OUTPUT_NAME_bootloader) && defined(CONFIG_SB_MDK_BOOT)
 INCLUDE "nrf_common.ld"
 #else
-
 ENTRY(CONFIG_KERNEL_ENTRY)
+#endif /* CONFIG_SB_MDK_BOOT && LINKER_OUTPUTNAME_bootloader */
 
 SECTIONS
     {
@@ -481,4 +481,3 @@ SECTIONS
 	}
 
     }
-#endif /* CONFIG_SB_MDK_BOOT && LINKER_OUTPUTNAME_bootloader */

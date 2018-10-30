@@ -115,44 +115,15 @@ static void inline _delay(uint32_t volatile tmr){
 
 int main(void)
 {
-<<<<<<< HEAD
-	uint32_t volatile input;
 #if CONFIG_SB_FLASH_LOCKDOWN
 	lock_area(FLASH_AREA_SECURE_BOOT_OFFSET, FLASH_AREA_SECURE_BOOT_SIZE);
 #endif //CONFIG_SB_FLASH_LOCKDOWN
-=======
->>>>>>> Add uart support and hold button restart boot functionality
 	button_init();
-	//debug_print("%s\r\n", "Start BL");
-#ifdef CONFIG_SB_SEGGER_RTT
+#if defined(CONFIG_SB_SEGGER_RTT)
 	SEGGER_RTT_Init();
-#endif /* CONFIG_SB_SEGGER_RTT */
-<<<<<<< HEAD
-
-	/* TODO: Clean up button and led  configurations before jump */
-	debug_print("%s\n","Bootloader started");
-	/* Add small delay to let RTT print out */
-	_delay(10000000);
-	input = ((NRF_GPIO->IN >> BUTTON1_GPIO) & 1UL);
-	if(input){
-		debug_print("%s\n","Boot from area s0");
-		_delay(10000000);
-		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S0_OFFSET));
-	}
-	input = ((NRF_GPIO->IN >> BUTTON2_GPIO) & 1UL);
-	if(input){
-		debug_print("%s\n","Boot from area s1");
-		_delay(10000000);
-		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
-	}
-	input = ((NRF_GPIO->IN >> BUTTON3_GPIO) & 1UL);
-	if(input){
-		debug_print("%s\n","Boot from app");
-		_delay(10000000);
-=======
-#ifdef CONFIG_SB_UART
+#elif defined(CONFIG_SB_UART)
 	uart_init();
-#endif /* CONFIG_SB_UART */
+#endif /* CONFIG_SB_RTT */
 	
 	uint32_t volatile input = NRF_GPIO->IN;
 	if(input == BUTTON1){
@@ -165,7 +136,6 @@ int main(void)
 	}
 	else if(input == BUTTON3){
 		debug_print("%s\n\r","Boot from app");
->>>>>>> Add uart support and hold button restart boot functionality
 		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	}
 

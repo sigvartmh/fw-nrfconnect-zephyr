@@ -1280,7 +1280,6 @@ add_custom_command(
 ######### Bootloader handling ########
 if(CONFIG_SECURE_BOOT)
   # Create linker flags for zephyr bootloader
-  set(LINKER_DIR "${ZEPHYR_BASE}/include/arch/arm/cortex_m/scripts")
   set(bl_zephyr_lnk
     ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/bootloader.map
     -u_OffsetAbsSyms
@@ -1289,7 +1288,7 @@ if(CONFIG_SECURE_BOOT)
     ${OFFSETS_O_PATH}
     ${LIB_INCLUDE_DIR}
     ${TOOLCHAIN_LIBS}
-    -L${LINKER_DIR}
+    -L${CONFIG_LINKER_DIR}
     )
 
   # Create custom linker script, will be named 'bootloader.cmd'

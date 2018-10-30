@@ -19,15 +19,20 @@ choice
 		bool "Hijack zephyr boot process"
 	config SB_MDK_BOOT
 		bool "MDK assembly boot process"
+		imply SB_SYSTEM_INIT
 endchoice
 
 config SB_FLASH_LOCKDOWN
 	bool "Lock down flash before jumping to next stage."
     default y
 
+config LINKER_DIR 
+	string "Linker script path"
+	default "$ZEPHYR_BASE/subsys/bootloader/scripts/arm/cortex_m"
+	depends on SB_MDK_BOOT
+
 config SB_SYSTEM_INIT
 	bool "Boot with chip specific initialization"
-	#select SYSTEM_INIT
 
 choice SB_SIG_ALGORITHM
 	prompt "Signature algorithm to use for verification of firmware."

@@ -122,5 +122,7 @@ void _PrepC(void)
 #ifdef CONFIG_SB_ZEPHYR_BOOT
 	main();
 #else
+	_Cstart();
+#endif
 	CODE_UNREACHABLE;
 }
