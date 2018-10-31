@@ -11,15 +11,16 @@ if SECURE_BOOT
 menu "Secure Boot Options"
 
 choice
-	prompt "Startup code selection"
+	prompt "C runtime setup selection"
 	default SB_CUSTOM_BOOT
 	config SB_CUSTOM_BOOT
-		bool "Home grown boot process"
+		bool "Custom C runtime setup"
 	config SB_ZEPHYR_BOOT
-		bool "Hijack zephyr boot process"
+		bool "Zephyr C runtime setup"
 	config SB_MDK_BOOT
-		bool "MDK assembly boot process"
-		imply SB_SYSTEM_INIT
+		bool "MDK C runtime setup"
+		select SB_SYSTEM_INIT(=y)
+		select LINKER_DIR(="$ZEPHYR_BASE/subsys/bootloader/scripts/arm/cortex_m")
 endchoice
 
 config SB_FLASH_LOCKDOWN
@@ -27,8 +28,7 @@ config SB_FLASH_LOCKDOWN
     default y
 
 config LINKER_DIR 
-	string "Linker script path"
-	default "$ZEPHYR_BASE/subsys/bootloader/scripts/arm/cortex_m"
+	string "Additional linker script path"
 	depends on SB_MDK_BOOT
 
 config SB_SYSTEM_INIT
@@ -58,7 +58,6 @@ choice
 	default SB_SEGGER_RTT
 	config SB_SEGGER_RTT
 		bool "SEGGER RTT debug support"
-
 	config SB_UART
 		bool "UART debug support"
 endchoice

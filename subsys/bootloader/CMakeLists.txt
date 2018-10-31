@@ -21,7 +21,7 @@ add_dependencies(bootloader offsets_h)
 
 target_link_libraries(bootloader zephyr_interface)
 
-target_sources_ifdef(CONFIG_SB_CUSTOM_BOOT
+target_sources_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_CUSTOM
   bootloader
   PRIVATE
   startup.c
@@ -46,7 +46,7 @@ if (CONFIG_SB_FLASH_LOCKDOWN)
     ${LOCKDOWN_SRC})
 endif ()
 
-target_sources_ifdef(CONFIG_SB_ZEPHYR_BOOT
+target_sources_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
 	bootloader
 	PRIVATE
 	${CORTEX_M}/vector_table.h
@@ -61,14 +61,14 @@ target_sources_ifdef(CONFIG_SB_ZEPHYR_BOOT
 	)
 
 
-target_sources_ifdef(CONFIG_SB_MDK_BOOT
+target_sources_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK
 	bootloader
 	PRIVATE
 	startup/gcc_startup_nrf52840.S
 	)
 
 
-target_include_directories_ifdef(CONFIG_SB_ZEPHYR_BOOT
+target_include_directories_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
 	bootloader
 	PRIVATE
 	${CORTEX_M}
