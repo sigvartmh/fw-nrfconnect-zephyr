@@ -141,7 +141,7 @@ void reset_handler(void)
 {
 	_bss_zero(&__bss_start, &__bss_end);
 	_data_copy(&_image_text_end, &__data_ram_start, &__data_ram_end);
-#if defined(CONFIG_SB_SYSTEM_INIT)
+#if defined(CONFIG_SB_VENDOR_SYSTEM_INIT)
 	SystemInit(); /* Create define for system INIT */
 #endif /* CONFIG_SECURE_BOOT TODO: Find a way to use select defines? */
 	main();

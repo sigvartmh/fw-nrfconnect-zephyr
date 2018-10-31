@@ -3,15 +3,15 @@
 #include <generated_dts_board.h>
 
 
-#ifdef CONFIG_SB_SEGGER_RTT
+#ifdef CONFIG_SB_DEBUG_PORT_SEGGER_RTT
 #include <SEGGER_RTT_sb.h>
-#define debug_print(fmt, ...) do{if(CONFIG_SB_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
-#elif defined(CONFIG_SB_UART)
+#define debug_print(fmt, ...) do{if(CONFIG_SB_DEBUG_PORT_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
+#elif defined(CONFIG_SB_DEBUG_PORT_UART)
 #include "uart.h"
-#define debug_print(fmt, ...) do{if(CONFIG_SB_UART){uart_printf(fmt, __VA_ARGS__);}}while(0)
+#define debug_print(fmt, ...) do{if(CONFIG_SB_DEBUG_PORT_UART){uart_printf(fmt, __VA_ARGS__);}}while(0)
 #else
 #define debug_print(...) do{}while(0)
-#endif /* CONFIG_SB_SEGGER_RTT */
+#endif /* CONFIG_SB_DEBUG_PORT_SEGGER_RTT */
 
 #ifdef CONFIG_SB_FLASH_LOCKDOWN
 #include <lockdown.h>
@@ -119,9 +119,9 @@ int main(void)
 	lock_area(FLASH_AREA_SECURE_BOOT_OFFSET, FLASH_AREA_SECURE_BOOT_SIZE);
 #endif //CONFIG_SB_FLASH_LOCKDOWN
 	button_init();
-#if defined(CONFIG_SB_SEGGER_RTT)
+#if defined(CONFIG_SB_DEBUG_PORT_SEGGER_RTT)
 	SEGGER_RTT_Init();
-#elif defined(CONFIG_SB_UART)
+#elif defined(CONFIG_SB_DEBUG_PORT_UART)
 	uart_init();
 #endif /* CONFIG_SB_RTT */
 	

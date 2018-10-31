@@ -1288,7 +1288,7 @@ if(CONFIG_SECURE_BOOT)
     ${OFFSETS_O_PATH}
     ${LIB_INCLUDE_DIR}
     ${TOOLCHAIN_LIBS}
-    -L${CONFIG_LINKER_DIR}
+    -L${CONFIG_ADDITIONAL_LINKER_DIR}
     )
 
   # Create custom linker script, will be named 'bootloader.cmd'
