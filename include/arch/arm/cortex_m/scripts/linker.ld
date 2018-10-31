@@ -91,6 +91,10 @@ ENTRY(CONFIG_KERNEL_ENTRY)
 
 SECTIONS
     {
+        _metadata 0x800 :
+        {
+            KEEP(*(.metadata)) ;
+        }
 
 #include <linker/rel-sections.ld>
 
