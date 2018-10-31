@@ -76,21 +76,21 @@ target_include_directories_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
 
 
 # Nordic specific for startup code
-target_sources_ifdef(CONFIG_SB_SYSTEM_INIT
+target_sources_ifdef(CONFIG_SB_VENDOR_SYSTEM_INIT
   bootloader
   PRIVATE
   ${HAL}/nordic/nrfx/mdk/system_nrf52840.c
   )
 
 # SEGGER files for DEBUG
-target_include_directories_ifdef(CONFIG_SB_SEGGER_RTT
+target_include_directories_ifdef(CONFIG_SB_DEBUG_PORT_SEGGER_RTT
   bootloader
   PRIVATE
   rtt
   ${STD_INCLUDE}
   )
 
-target_sources_ifdef(CONFIG_SB_SEGGER_RTT
+target_sources_ifdef(CONFIG_SB_DEBUG_PORT_SEGGER_RTT
   bootloader
   PRIVATE
   ${SEGGER}/rtt/SEGGER_RTT.c
@@ -99,14 +99,14 @@ target_sources_ifdef(CONFIG_SB_SEGGER_RTT
   rtt/SEGGER_RTT_sb.h
   )
 
-target_sources_ifdef(CONFIG_SB_UART
+target_sources_ifdef(CONFIG_SB_DEBUG_PORT_UART
 	bootloader
 	PRIVATE
 	uart/uart.h	
 	uart/uart.c
 	)
 
-target_include_directories_ifdef(CONFIG_SB_UART
+target_include_directories_ifdef(CONFIG_SB_DEBUG_PORT_UART
 	bootloader
 	PRIVATE
 	uart
