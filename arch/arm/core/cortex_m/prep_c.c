@@ -104,9 +104,12 @@ extern FUNC_NORETURN void _Cstart(void);
  *
  * @return N/A
  */
-#ifdef CONFIG_SB_ZEPHYR_BOOT
+
+/* Create an entry point to main to be called from the _PrepC function */
+#ifdef CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
 extern int main();
-#endif /* CONFIG_SB_ZEPHYR_BOOT */
+#endif /* CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR */
+
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
 	extern u64_t __start_time_stamp;
 #endif
@@ -119,7 +122,10 @@ void _PrepC(void)
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
 	__start_time_stamp = 0;
 #endif
-#ifdef CONFIG_SB_ZEPHYR_BOOT
+/* Call main before zephyr startup code tries to setup the kernel runtime
+ * as we only want the C runtime and not the threading, contex switching etc.
+ */
+#ifdef CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
 	main();
 #else
 	_Cstart();
