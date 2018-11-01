@@ -5,16 +5,21 @@
 #
 config SECURE_BOOT
 	bool "Secure Boot Support"
+	select SECURE_BOOT_CRYPTO
 
+if !SECURE_BOOT
+source "subsys/bootloader/bl0_crypto/Kconfig"
+
+endif
 if SECURE_BOOT
+menu "Secure Boot Options."
 
-menu "Secure Boot Options"
-
+source "subsys/bootloader/bl0_crypto/Kconfig"
 source "subsys/bootloader/c_runtime_setup/Kconfig"
 
 config SB_FLASH_LOCKDOWN
 	bool "Lock down flash before jumping to next stage."
-    default y
+	default y
 
 config SB_VALIDATION_METADATA_MAGIC_WORD
 	string "Hexadecimal magic word to use as metadata format"
@@ -44,20 +49,6 @@ config SB_SYSTEM_INIT
 	bool "Boot with chip specific initialization"
 	#select SYSTEM_INIT
 
-choice SB_SIG_ALGORITHM
-	prompt "Signature algorithm to use for verification of firmware."
-	default SB_SIG_ALGORITHM_ECDSA_SECP256
-	config SB_SIG_ALGORITHM_ECDSA_SECP256
-		bool "ECDSA with NIST curve secp256r1"
-
-	config SB_SIG_ALGORITHM_RSA_2048
-		bool "RSASSA-PSS, 2048 bits"
-endchoice
-
-config SB_SIG_LEN
-	int
-	default 32 if SB_SIG_ALGORITHM_ECDSA_SECP256
-	default 256 if SB_SIG_ALGORITHM_RSA_2048
 
 config SECURE_BOOT_DEBUG
 	bool "Debugging support"
@@ -117,8 +108,7 @@ config SB_DEBUG_PORT_SEGGER_RTT_MODE
 
 config SB_DEBUG_PORT_SEGGER_RTT_MEMCPY_USE_BYTELOOP
 	bool "Use a simple byte-loop instead of standard memcpy"
-endif
 
+endif # SB_DEBUG_PORT_SEGGER_RTT
 endmenu
-
-endif
+endif # SECURE_BOOT

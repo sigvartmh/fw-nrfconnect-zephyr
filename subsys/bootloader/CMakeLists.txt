@@ -4,6 +4,8 @@
 
 add_library(bootloader bootloader.c)
 
+target_link_libraries(bootloader PRIVATE bl0_crypto)
+
 add_subdirectory(c_runtime_setup)
 target_link_libraries(bootloader PRIVATE c_runtime_setup)
 
@@ -24,7 +26,7 @@ target_link_libraries(bootloader PRIVATE zephyr_interface)
 
 
 target_include_directories_ifdef(CONFIG_SB_FLASH_LOCKDOWN
-  bootloader 
+  bootloader
   PRIVATE lockdown/include
   )
 
