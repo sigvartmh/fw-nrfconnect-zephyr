@@ -7,6 +7,9 @@
  * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
 
+#include <stdint.h>
+#include <stdbool.h>
+
 // Placeholder defines. Values should be updated, if no existing errors can be
 // used instead.
 #define EPKHASHINV 1
@@ -31,21 +34,22 @@
  * @param[in]  fw_hash       Expected hash of the firmware. This must be inside
  *			     the signed metadata to maintain root of trust.
  *
- * @retval 0		On success.
+ * @retval 0            On success.
+ * @retval -EINVAL      If fw_hash is not inside metadata.
  * @retval -EPKHASHINV  If pk_hash didn't match pk.
- * @retval -ESIGINV	If signature validation failed.
- * @retval -EHASHINV	If firmware hash didn't match firmware.
+ * @retval -ESIGINV     If signature validation failed.
+ * @retval -EHASHINV    If firmware hash didn't match firmware.
  *
  * @remark No parameter can be NULL.
  */
-int verify_fw_cryptographic_root_of_trust(const uint8_t * pk,
-                                          const uint8_t * pk_hash,
-                                          const uint8_t * metadata,
-                                          const uint32_t  metadata_len,
-                                          const uint8_t * sig,
-                                          const uint8_t * fw,
-                                          const uint32_t  fw_len,
-                                          const uint8_t * fw_hash);
+int crypto_root_of_trust(const uint8_t * pk,
+                         const uint8_t * pk_hash,
+                         const uint8_t * metadata,
+                         const uint32_t  metadata_len,
+                         const uint8_t * sig,
+                         const uint8_t * fw,
+                         const uint32_t  fw_len,
+                         const uint8_t * fw_hash);
 
 #endif
 

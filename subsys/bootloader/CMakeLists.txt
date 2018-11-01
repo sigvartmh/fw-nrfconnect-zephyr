@@ -4,6 +4,8 @@
 
 # TODO: Add conditionals for debugging and SystemInit
 
+add_subdirectory(bl0_crypto)
+
 add_library(bootloader
   bootloader.c
   )
@@ -17,7 +19,8 @@ set(STD_INCLUDE ${STD_LIB_C}/include)
 
 add_dependencies(bootloader offsets_h)
 
-target_link_libraries(bootloader zephyr_interface)
+target_link_libraries(bootloader PRIVATE zephyr_interface)
+target_link_libraries(bootloader PRIVATE bl0_crypto)
 
 target_sources_ifdef(CONFIG_SB_CUSTOM_BOOT
   bootloader

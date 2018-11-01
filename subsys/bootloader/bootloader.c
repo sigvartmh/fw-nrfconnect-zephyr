@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <nrf.h>
 #include <generated_dts_board.h>
+#include "bl0_crypto.h"
 
 #ifdef CONFIG_SB_SEGGER_RTT
 #include <SEGGER_RTT_sb.h>
@@ -118,6 +119,8 @@ int main(void)
 	SEGGER_RTT_Init();
 #endif /* CONFIG_SB_SEGGER_RTT */
 
+	uint8_t dummy[256];
+	crypto_root_of_trust(dummy, dummy, dummy, 256, dummy, dummy, 256, dummy);
 	/* TODO: Clean up button and led  configurations before jump */
 	debug_print("%s\n","Bootloader started");
 	/* Add small delay to let RTT print out */
