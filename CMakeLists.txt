@@ -1210,7 +1210,6 @@ if (CONFIG_BUILD_OUTPUT_HEX OR CONFIG_SECURE_BOOT)
     COMMAND ${CMAKE_OBJCOPY}
     -S
     -Oihex
-    --gap-fill 0xFF
     -R .comment
     -R COMMON
     -R .eh_frame
@@ -1351,7 +1350,7 @@ if(CONFIG_SECURE_BOOT)
   add_custom_target(bootloader_hex DEPENDS bootloader.hex)
 
   # Create list of all files to be merged.
-  list(APPEND my_hex_files zephyr.hex)
+  list(APPEND my_hex_files ${SIGNED_KERNEL_HEX_NAME})
   list(APPEND my_hex_files bootloader.hex)
 
   # Create a list of the targets of the files to be merged.
@@ -1366,10 +1365,86 @@ if(CONFIG_SECURE_BOOT)
     ${ZEPHYR_BASE}/scripts/mergehex.py
     -i ${my_hex_files}
     -o merged.hex
-    DEPENDS ${my_hex_targets}
+    DEPENDS ${my_hex_targets} sign
     )
 
   add_custom_target(merged_hex ALL DEPENDS merged.hex)
+
+  # Check if PEM file is specified by user, if not, create one.
+
+  # First, check environment variables. Only use if not specified in command line.
+  if (DEFINED ENV{SB_VALIDATION_PEM_PATH} AND NOT SB_VALIDATION_PEM_PATH)
+    if (NOT EXISTS "$ENV{SB_VALIDATION_PEM_PATH}")
+      message(FATAL_ERROR "ENV points to non-existing PEM file '$ENV{SB_VALIDATION_PEM_PATH}'")
+    else()
+      message("SET in ENV")
+      set(CONFIG_SB_VALIDATION_PEM_PATH $ENV{SB_VALIDATION_PEM_PATH})
+    endif()
+  endif()
+
+  # Next, check command line arguments
+  if (DEFINED SB_VALIDATION_PEM_PATH)
+    message("SET IN COMMAND LINE")
+    set(CONFIG_SB_VALIDATION_PEM_PATH ${SB_VALIDATION_PEM_PATH})
+  endif()
+
+  # Lastly, check if it is not set anywhere, it which case a new 
+  # PEM file will be genareted.
+  if( "${CONFIG_SB_VALIDATION_PEM_PATH}" STREQUAL "")
+    set(CONFIG_SB_VALIDATION_PEM_PATH ${PROJECT_BINARY_DIR}/GENERATED_NON_SECURE_PEM.pem)
+
+    set(cmd
+      ${CMAKE_COMMAND} -E env
+      PYTHONPATH=${ZEPHYR_BASE}/scripts/
+      ${PYTHON_EXECUTABLE}
+      ${ZEPHYR_BASE}/scripts/keygen.py
+      --output ${CONFIG_SB_VALIDATION_PEM_PATH}
+      DEPENDS ${logical_target_for_zephyr_elf}
+      WORKING_DIRECTORY ${APPLICATION_BINARY_DIR}
+      )
+
+    # Set this, so that the 'sign' target depends on it.
+    set(KEYGEN_TARGET keygen)
+    add_custom_target(keygen
+      ALL
+      COMMAND
+      ${cmd}
+      COMMENT
+      "Generating temporary PEM file ${CONFIG_SB_VALIDATION_PEM_PATH}"
+      USES_TERMINAL
+      )
+  else()
+    if (NOT EXISTS "${CONFIG_SB_VALIDATION_PEM_PATH}")
+      message(FATAL_ERROR "Config points to non-existing PEM file '${CONFIG_SB_VALIDATION_PEM_PATH}'")
+    endif()
+    add_custom_target(keygen)  # Dummy target TODO can we get around this somehow?
+  endif()
+
+
+  set(SIGNED_KERNEL_HEX_NAME signed_${KERNEL_HEX_NAME})
+
+  set(cmd
+    ${CMAKE_COMMAND} -E env
+    PYTHONPATH=${ZEPHYR_BASE}/scripts/
+    ${PYTHON_EXECUTABLE}
+    ${ZEPHYR_BASE}/scripts/sign.py
+    --input ${PROJECT_BINARY_DIR}/${KERNEL_HEX_NAME}
+    --output ${SIGNED_KERNEL_HEX_NAME}
+    --offset ${CONFIG_SB_VALIDATION_METADATA_OFFSET}
+    --pem ${CONFIG_SB_VALIDATION_PEM_PATH}
+    --magic-value 1122334455667788
+    DEPENDS ${logical_target_for_zephyr_elf} ${KEYGEN_TARGET}
+    WORKING_DIRECTORY ${APPLICATION_BINARY_DIR}
+    )
+
+  add_custom_target(sign
+    ALL
+    COMMAND
+    ${cmd}
+    COMMENT
+    "Creating validation for ${KERNEL_HEX_NAME}, storing to ${SIGNED_KERNEL_HEX_NAME}"
+    USES_TERMINAL
+    )
 
   if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
     set(option ${LINKERFLAGPREFIX},--print-memory-usage)

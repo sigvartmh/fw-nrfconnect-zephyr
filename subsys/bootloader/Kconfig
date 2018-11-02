@@ -25,6 +25,30 @@ config SB_FLASH_LOCKDOWN
 	bool "Lock down flash before jumping to next stage."
     default y
 
+config SB_VALIDATION_METADATA_MAGIC_WORD
+	string "Hexadecimal magic word to use as metadata format"
+	default "1122334455667788AABBCCDD"
+	help
+	  Must be byte sized.
+
+config SB_VALIDATION_METADATA_OFFSET
+	int "Offset to store application metadata at."
+	default 0
+	help
+	  Must be either 0 or larger than size of application. If 0 is set,
+	  the metadata will be appended directly after the application image,
+	  aligned to closest word.
+
+config SB_VALIDATION_PEM_PATH
+	string "Absolute path to PEM file used for signing image."
+	default ""
+	help
+	  This value can also be set by exporting an environment variable
+	  named 'SB_VALIDATION_PEM_PATH' or passing
+	  '-DSB_VALIDATION_PEM_PATH=/path/to/my/pem' when running cmake.
+	  If no value is set, a random PEM will be generated and placed 
+	  in the build directory.
+
 config SB_SYSTEM_INIT
 	bool "Boot with chip specific initialization"
 	#select SYSTEM_INIT
