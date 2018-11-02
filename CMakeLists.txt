@@ -1288,8 +1288,10 @@ if(CONFIG_SECURE_BOOT)
     ${OFFSETS_O_PATH}
     ${LIB_INCLUDE_DIR}
     ${TOOLCHAIN_LIBS}
-    -L${CONFIG_ADDITIONAL_LINKER_DIR}
-    )
+   )
+  if(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK)
+    set(bl_zephyr_lnk ${bl_zephyr_lnk} -L${CONFIG_ADDITIONAL_LINKER_DIR})
+  endif()
 
   # Create custom linker script, will be named 'bootloader.cmd'
   # and will be called with define
