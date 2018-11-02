@@ -2,30 +2,20 @@
 # This because our library should not be added to the 'ZEPHYR_LIBS' list,
 # since it should not be linked to the zephyr elf itself.
 
-# TODO: Add conditionals for debugging and SystemInit
-add_subdirectory(startup)
-add_library(bootloader
-  bootloader.c
-  )
+add_library(bootloader bootloader.c)
 
-set(EXTS ${ZEPHYR_BASE}/ext)
-set(HAL ${EXTS}/hal)
-set(SEGGER ${EXTS}/debug/segger)
-set(STD_LIB_C ${ZEPHYR_BASE}/lib/libc/minimal)
-set(STD_SOURCE ${STD_LIB_C}/source)
-set(STD_INCLUDE ${STD_LIB_C}/include)
-
+add_subdirectory(c_runtime_setup)
+add_subdirectory(libc)
+add_subdirectory(uart)
+add_subdirectory(rtt)
 add_dependencies(bootloader offsets_h)
 
 target_link_libraries(bootloader PRIVATE zephyr_interface)
 target_link_libraries(bootloader PRIVATE c_runtime_setup)
+target_link_libraries(bootloader PRIVATE libc)
+target_link_libraries(bootloader PRIVATE uart)
+target_link_libraries(bootloader PRIVATE segger_rtt)
 
-# Nordic specific for startup code
-target_sources_ifdef(CONFIG_SB_VENDOR_SYSTEM_INIT
-  bootloader
-  PRIVATE
-  ${HAL}/nordic/nrfx/mdk/system_nrf52840.c
-  )
 
 if (CONFIG_SB_FLASH_LOCKDOWN)
   target_include_directories(bootloader PRIVATE lockdown/include)
@@ -46,48 +36,19 @@ if (CONFIG_SB_FLASH_LOCKDOWN)
     ${LOCKDOWN_SRC})
 endif ()
 
+
 # SEGGER files for DEBUG
 target_include_directories_ifdef(CONFIG_SB_DEBUG_PORT_SEGGER_RTT
   bootloader
   PRIVATE
   rtt
-  ${STD_INCLUDE}
   )
-
-target_sources_ifdef(CONFIG_SB_DEBUG_PORT_SEGGER_RTT
-  bootloader
-  PRIVATE
-  ${SEGGER}/rtt/SEGGER_RTT.c
-  ${SEGGER}/rtt/SEGGER_RTT_printf.c
-  rtt/SEGGER_RTT_Conf_sb.h
-  rtt/SEGGER_RTT_sb.h
-  )
-
-target_sources_ifdef(CONFIG_SB_DEBUG_PORT_UART
-	bootloader
-	PRIVATE
-	uart/uart.h	
-	uart/uart.c
-	)
 
 target_include_directories_ifdef(CONFIG_SB_DEBUG_PORT_UART
-	bootloader
-	PRIVATE
-	uart
-	)
+  bootloader
+  PRIVATE
+  uart
+  )
 
-target_sources_ifdef(CONFIG_SECURE_BOOT_DEBUG
-	bootloader
-	PRIVATE
-	${STD_SOURCE}/stdlib/atoi.c
-	${STD_SOURCE}/stdlib/strtol.c
-	${STD_SOURCE}/stdlib/strtoul.c
-	${STD_SOURCE}/stdlib/malloc.c
-	${STD_SOURCE}/string/strncasecmp.c
-	${STD_SOURCE}/string/strstr.c
-	${STD_SOURCE}/string/string.c
-	${STD_SOURCE}/stdout/prf.c
-	${STD_SOURCE}/stdout/stdout_console.c
-	${STD_SOURCE}/stdout/sprintf.c
-	${STD_SOURCE}/stdout/fprintf.c
-	)
+
+

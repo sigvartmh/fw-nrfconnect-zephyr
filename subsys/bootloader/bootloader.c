@@ -124,7 +124,6 @@ int main(void)
 #elif defined(CONFIG_SB_DEBUG_PORT_UART)
 	uart_init();
 #endif /* CONFIG_SB_RTT */
-	
 	uint32_t volatile input = NRF_GPIO->IN;
 	if(input == BUTTON1){
 		debug_print("%s\n\r","Boot from area s0");

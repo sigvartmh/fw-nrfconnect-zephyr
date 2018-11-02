@@ -10,29 +10,12 @@ if SECURE_BOOT
 
 menu "Secure Boot Options"
 
-choice
-	prompt "C runtime setup selection"
-	default SB_C_RUNTIME_SETUP_VARIANT_CUSTOM
-	config SB_C_RUNTIME_SETUP_VARIANT_CUSTOM
-		bool "Custom C runtime setup"
-	config SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
-		bool "Zephyr C runtime setup"
-	config SB_C_RUNTIME_SETUP_VARIANT_MDK
-		bool "MDK C runtime setup"
-		select SB_VENDOR_SYSTEM_INIT(=y)
-endchoice
+source "subsys/bootloader/c_runtime_setup/Kconfig"
 
 config SB_FLASH_LOCKDOWN
 	bool "Lock down flash before jumping to next stage."
     default y
 
-config ADDITIONAL_LINKER_DIR
-	default "$ZEPHYR_BASE/subsys/bootloader/scripts/arm/cortex_m"
-	string "Additional linker script path"
-	depends on SB_C_RUNTIME_SETUP_VARIANT_MDK
-
-config SB_VENDOR_SYSTEM_INIT
-	bool "Boot with chip specific initialization"
 
 choice SB_SIG_ALGORITHM
 	prompt "Signature algorithm to use for verification of firmware."
