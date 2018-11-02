@@ -18,7 +18,7 @@
 OUTPUT_FORMAT ("elf32-littlearm", "elf32-bigarm", "elf32-littlearm")
 
 /* Linker script to place sections and symbol values. Should be used together
- * with other linker script that defines memory regions FLASH and RAM.
+ * with other linker script that defines memory regions FLASH and SRAM.
  * It references following symbols, which must be defined in code:
  *   Reset_Handler : Entry of reset handler
  *
@@ -150,14 +150,14 @@ SECTIONS
         KEEP(*(.stack*))
     } > SRAM
 
-    /* Set stack top to end of RAM, and stack limit move down by
+    /* Set stack top to end of SRAM, and stack limit move down by
      * size of stack_dummy section */
     __StackTop = ORIGIN(SRAM) + LENGTH(SRAM);
     __StackLimit = __StackTop - SIZEOF(.stack_dummy);
     PROVIDE(__stack = __StackTop);
 
-    /* Check if data + heap + stack exceeds RAM limit */
-    ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
+    /* Check if data + heap + stack exceeds SRAM limit */
+    ASSERT(__StackLimit >= __HeapLimit, "region SRAM overflowed with stack")
     
     /* Check if text sections + data exceeds FLASH limit */
     DataInitFlashUsed = __bss_start__ - __data_start__;

@@ -91,7 +91,7 @@ MEMORY
 INCLUDE "nrf_common.ld"
 #else
 ENTRY(CONFIG_KERNEL_ENTRY)
-#endif /* CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK && LINKER_OUTPUTNAME_bootloader */
+#endif
 
 SECTIONS
     {
