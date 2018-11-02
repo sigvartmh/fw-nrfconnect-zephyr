@@ -91,52 +91,19 @@ static void boot_from(uint32_t *address)
 	((void (*)(void))address[1])();
 }
 
-void led_init(void)
-{
-	config_led(LED1_GPIO);
-	config_led(LED2_GPIO);
-	config_led(LED3_GPIO);
-	config_led(LED4_GPIO);
-}
-
-void button_init(void)
-{
-	config_input(BUTTON1_GPIO);
-	config_input(BUTTON2_GPIO);
-	config_input(BUTTON3_GPIO);
-	config_input(BUTTON4_GPIO);
-}
-
-
-static void inline _delay(uint32_t volatile tmr){
-	while(tmr--);
-}
-
-
 int main(void)
 {
 #if CONFIG_SB_FLASH_LOCKDOWN
 	lock_area(FLASH_AREA_SECURE_BOOT_OFFSET, FLASH_AREA_SECURE_BOOT_SIZE);
 #endif //CONFIG_SB_FLASH_LOCKDOWN
-	button_init();
 #if defined(CONFIG_SB_DEBUG_PORT_SEGGER_RTT)
 	SEGGER_RTT_Init();
 #elif defined(CONFIG_SB_DEBUG_PORT_UART)
 	uart_init();
 #endif /* CONFIG_SB_RTT */
-	uint32_t volatile input = NRF_GPIO->IN;
-	if(input == BUTTON1){
-		debug_print("%s\n\r","Boot from area s0");
-		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S0_OFFSET));
-	}
-	else if(input == BUTTON2){
-		debug_print("%s\n\r","Boot from area s1");
-		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
-	}
-	else if(input == BUTTON3){
-		debug_print("%s\n\r","Boot from app");
-		boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
-	}
-
+	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
+	/* Unreachable */
+	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
+	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	return 0;
 }
