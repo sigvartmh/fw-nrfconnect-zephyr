@@ -3,7 +3,7 @@
 # since it should not be linked to the zephyr elf itself.
 
 # TODO: Add conditionals for debugging and SystemInit
-
+add_subdirectory(startup)
 add_library(bootloader
   bootloader.c
   )
@@ -14,17 +14,17 @@ set(SEGGER ${EXTS}/debug/segger)
 set(STD_LIB_C ${ZEPHYR_BASE}/lib/libc/minimal)
 set(STD_SOURCE ${STD_LIB_C}/source)
 set(STD_INCLUDE ${STD_LIB_C}/include)
-set(ARM ${ZEPHYR_BASE}/arch/arm/core)
-set(CORTEX_M ${ARM}/cortex_m)
 
 add_dependencies(bootloader offsets_h)
 
-target_link_libraries(bootloader zephyr_interface)
+target_link_libraries(bootloader PRIVATE zephyr_interface)
+target_link_libraries(bootloader PRIVATE c_runtime_setup)
 
-target_sources_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_CUSTOM
+# Nordic specific for startup code
+target_sources_ifdef(CONFIG_SB_VENDOR_SYSTEM_INIT
   bootloader
   PRIVATE
-  startup.c
+  ${HAL}/nordic/nrfx/mdk/system_nrf52840.c
   )
 
 if (CONFIG_SB_FLASH_LOCKDOWN)
@@ -45,42 +45,6 @@ if (CONFIG_SB_FLASH_LOCKDOWN)
     PRIVATE
     ${LOCKDOWN_SRC})
 endif ()
-
-target_sources_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
-	bootloader
-	PRIVATE
-	${CORTEX_M}/vector_table.h
-	${CORTEX_M}/vector_table.S
-	${CORTEX_M}/reset.S
-	${CORTEX_M}/prep_c.c
-	${ZEPHYR_BASE}/kernel/init.c
-	${ARM}/fault_s.S
-	${ARM}/swap_helper.S
-	${CORTEX_M}/nmi.c
-	${CORTEX_M}/nmi_on_reset.S
-	)
-
-
-target_sources_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK
-	bootloader
-	PRIVATE
-	startup/gcc_startup_nrf52840.S
-	)
-
-
-target_include_directories_ifdef(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
-	bootloader
-	PRIVATE
-	${CORTEX_M}
-	)
-
-
-# Nordic specific for startup code
-target_sources_ifdef(CONFIG_SB_VENDOR_SYSTEM_INIT
-  bootloader
-  PRIVATE
-  ${HAL}/nordic/nrfx/mdk/system_nrf52840.c
-  )
 
 # SEGGER files for DEBUG
 target_include_directories_ifdef(CONFIG_SB_DEBUG_PORT_SEGGER_RTT
