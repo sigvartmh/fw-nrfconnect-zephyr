@@ -103,7 +103,7 @@ Revision: $Rev: 9599 $
 *       This is may be required with memory access restrictions, 
 *       such as on Cortex-A devices with MMU.
 */
-#if defined CONFIG_SB_SEGGER_RTT_MEMCPY_USE_BYTELOOP
+#if defined CONFIG_SB_DEBUG_PORT_SEGGER_RTT_MEMCPY_USE_BYTELOOP
 #define SEGGER_RTT_MEMCPY_USE_BYTELOOP              1 // 1: Use a simple byte-loop
 #else
 #define SEGGER_RTT_MEMCPY_USE_BYTELOOP              0 // 0: Use memcpy/SEGGER_RTT_MEMCPY
