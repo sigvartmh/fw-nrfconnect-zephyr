@@ -275,7 +275,7 @@ Reset_Handler:
  * If those libraries are not accessible, define __START as your entry point.
  */
 #ifndef __START
-#define __START _start
+#define __START main
 #endif
     bl __START
 

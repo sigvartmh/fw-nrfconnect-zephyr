@@ -53,7 +53,7 @@ extern uint32_t _image_text_end;
 
 /* C main function to be called from the reset_handler */
 extern int main(void);
-
+//int main(void);
 /* Device specific intialization functions for erratas and system clock setup */
 extern void SystemInit(void);
 /* Forward decleration for dummy handler */
@@ -141,16 +141,15 @@ void reset_handler(void)
 {
 	_bss_zero(&__bss_start, &__bss_end);
 	_data_copy(&_image_text_end, &__data_ram_start, &__data_ram_end);
-#if defined(CONFIG_SB_SYSTEM_INIT)
+#if defined(CONFIG_SB_VENDOR_SYSTEM_INIT)
 	SystemInit(); /* Create define for system INIT */
 #endif /* CONFIG_SECURE_BOOT TODO: Find a way to use select defines? */
 	main();
-	while (1)
-		;
+	while (1);
 }
 
 /* TODO: Find a way to redefine the entry point from __start to reset handler?
- */
+*/
 void __start(void)
 {
 	reset_handler();
@@ -159,7 +158,6 @@ void __start(void)
 void dummy_handler(void)
 {
 	/* Hang on unexpected interrupts as it's considered a bug in the program
-	 */
-	while (1)
-		;
+	*/
+	while (1);
 }

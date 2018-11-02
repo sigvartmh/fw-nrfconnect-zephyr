@@ -12,7 +12,6 @@ config TEST_SECURE_BOOT
 if (SECURE_BOOT || TEST_SECURE_BOOT)
 
 menu "Secure Boot Options"
-
 config SB_NRF_OBERON
 	bool
 config SB_NRF_CC310_BL
@@ -76,25 +75,11 @@ config SB_HASH_LEN
 
 if SECURE_BOOT
 
-choice
-	prompt "Startup code selection"
-	default SB_CUSTOM_BOOT
-	config SB_CUSTOM_BOOT
-		bool "Home grown boot process"
-	config SB_ZEPHYR_BOOT
-		bool "Hijack zephyr boot process"
-	config SB_MDK_BOOT
-		bool "MDK assembly boot process"
-endchoice
+source "subsys/bootloader/c_runtime_setup/Kconfig"
 
 config SB_FLASH_LOCKDOWN
 	bool "Lock down flash before jumping to next stage."
     default y
-
-config SB_SYSTEM_INIT
-	bool "Boot with chip specific initialization"
-	#select SYSTEM_INIT
-
 
 config SECURE_BOOT_DEBUG
 	bool "Debugging support"
@@ -102,58 +87,57 @@ config SECURE_BOOT_DEBUG
 if SECURE_BOOT_DEBUG
 choice
 	prompt "Debug output selection"
-	default SB_SEGGER_RTT
-	config SB_SEGGER_RTT
+	default SB_DEBUG_PORT_SEGGER_RTT
+	config SB_DEBUG_PORT_SEGGER_RTT
 		bool "SEGGER RTT debug support"
-
-	config SB_UART
+	config SB_DEBUG_PORT_UART
 		bool "UART debug support"
 endchoice
 
 endif #SECURE_BOOT_DEBUG
 
-if SB_SEGGER_RTT
+if SB_DEBUG_PORT_SEGGER_RTT
 
-config SB_SEGGER_RTT_MAX_NUM_UP_BUFFERS
+config SB_DEBUG_PORT_SEGGER_RTT_MAX_NUM_UP_BUFFERS
 	int "Maximum number of up-buffers"
 	default 3
 
-config SB_SEGGER_RTT_MAX_NUM_DOWN_BUFFERS
+config SB_DEBUG_PORT_SEGGER_RTT_MAX_NUM_DOWN_BUFFERS
 	int "Maximum number of down-buffers"
 	default 3
 
-config SB_SEGGER_RTT_BUFFER_SIZE_UP
+config SB_DEBUG_PORT_SEGGER_RTT_BUFFER_SIZE_UP
 	int "Size of the buffer for terminal output of target, up to host"
 	default 1024
 
-config SB_SEGGER_RTT_BUFFER_SIZE_DOWN
+config SB_DEBUG_PORT_SEGGER_RTT_BUFFER_SIZE_DOWN
 	int "Size of the buffer for terminal input of target, from host"
 	default 16
 
-config SB_SEGGER_RTT_PRINTF_BUFFER_SIZE
+config SB_DEBUG_PORT_SEGGER_RTT_PRINTF_BUFFER_SIZE
 	int "Size of buffer for RTT printf to bulk-send chars via RTT"
 	default 64
 
 choice
 	prompt "Mode for pre-initialized terminal channel (buffer 0)"
-	default SB_SEGGER_RTT_MODE_NO_BLOCK_SKIP
-	config SB_SEGGER_RTT_MODE_NO_BLOCK_SKIP
+	default SB_DEBUG_PORT_SEGGER_RTT_MODE_NO_BLOCK_SKIP
+	config SB_DEBUG_PORT_SEGGER_RTT_MODE_NO_BLOCK_SKIP
 		bool "Skip. Do not block, output nothing."
 
-	config SB_SEGGER_RTT_MODE_NO_BLOCK_TRIM
+	config SB_DEBUG_PORT_SEGGER_RTT_MODE_NO_BLOCK_TRIM
 		bool "Trim: Do not block, output as much as fits."
 
-	config SB_SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL
+	config SB_DEBUG_PORT_SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL
 		bool "Block: Wait until there is space in the buffer."
 endchoice
 
-config SB_SEGGER_RTT_MODE
+config SB_DEBUG_PORT_SEGGER_RTT_MODE
 	int
-	default 2 if SB_SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL
-	default 1 if SB_SEGGER_RTT_MODE_NO_BLOCK_TRIM
+	default 2 if SB_DEBUG_PORT_SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL
+	default 1 if SB_DEBUG_PORT_SEGGER_RTT_MODE_NO_BLOCK_TRIM
 	default 0
 
-config SB_SEGGER_RTT_MEMCPY_USE_BYTELOOP
+config SB_DEBUG_PORT_SEGGER_RTT_MEMCPY_USE_BYTELOOP
 	bool "Use a simple byte-loop instead of standard memcpy"
 
 endif # SB_SEGGER_RTT
