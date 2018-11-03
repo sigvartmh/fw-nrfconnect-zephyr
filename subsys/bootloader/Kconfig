@@ -18,7 +18,7 @@ config SB_FLASH_LOCKDOWN
 
 config SB_VALIDATION_METADATA_MAGIC_WORD
 	string "Hexadecimal magic word to use as metadata format"
-	default "1122334455667788AABBCCDD"
+	default "B24EFBA01C59E209"
 	help
 	  Must be byte sized.
 
