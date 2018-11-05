@@ -1284,7 +1284,14 @@ if(CONFIG_SECURE_BOOT)
     ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/bootloader.map
     -u_OffsetAbsSyms
     -u_ConfigAbsSyms
-    bootloader # include bootloader library
+
+    # We need all symbols defined in the bootloader library,
+    # Even those that are not used anywhere.
+    # Acheive this by using the '--whole-archive' flag.
+    ${LINKERFLAGPREFIX},--whole-archive
+      bootloader # include bootloader library
+    ${LINKERFLAGPREFIX},--no-whole-archive
+
     ${OFFSETS_O_PATH}
     ${LIB_INCLUDE_DIR}
     ${TOOLCHAIN_LIBS}
