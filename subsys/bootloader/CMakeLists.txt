@@ -4,10 +4,6 @@
 
 add_library(bootloader bootloader.c)
 
-add_library(bootloader
-  bootloader.c
-  )
-
 add_subdirectory(bl0_crypto)
 target_link_libraries(bootloader PRIVATE bl0_crypto)
 

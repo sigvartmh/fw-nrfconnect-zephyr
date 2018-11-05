@@ -17,6 +17,7 @@ if (CONFIG_SB_NRF_OBERON)
   target_link_libraries(bl0_crypto PRIVATE ${OBERON_LIB})
   target_include_directories(bl0_crypto PRIVATE ${OBERON_BASE}/include)
   target_include_directories(bl0_crypto PUBLIC ../include)
+  target_include_directories(bl0_crypto PUBLIC ../include/misc)
 
   if (CONFIG_SB_CRYPTO_OBERON_ECDSA_SECP256R1)
     target_sources(bl0_crypto PRIVATE bl0_crypto_oberon_ecdsa.c)
