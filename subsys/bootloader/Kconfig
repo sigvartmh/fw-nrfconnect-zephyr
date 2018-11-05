@@ -35,6 +35,8 @@ choice SB_CRYPTO_SIG
 		select SB_NRF_OBERON
 		select SB_RSA
 
+endchoice
+
 config SB_VALIDATION_METADATA_MAGIC_WORD
 	string "Hexadecimal magic word to use as metadata format"
 	default "B24EFBA01C59E209"
@@ -72,7 +74,6 @@ config SB_SYSTEM_INIT
 		bool "Hardware implementation of RSASSA-PSS, 2048 bits" if HAS_HW_NRF_CC310
 		select SB_NRF_CC310_BL
 		select SB_RSA
-endchoice
 
 choice SB_CRYPTO_HASH
 	prompt "Crypto implementation to use for hash generation in BL0."
