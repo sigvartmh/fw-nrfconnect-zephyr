@@ -1278,7 +1278,6 @@ add_custom_command(
 
 if(CONFIG_SECURE_BOOT)
 include(${ZEPHYR_BASE}/subsys/bootloader/cmake/secureboot.cmake)
-
 endif()
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
