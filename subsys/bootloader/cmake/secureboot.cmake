@@ -3,7 +3,12 @@ set(bl_zephyr_lnk
   ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/bootloader.map
   -u_OffsetAbsSyms
   -u_ConfigAbsSyms
+  # We need all symbols defined in the bootloader library,
+  # Even those that are not used anywhere.
+  # Acheive this by using the '--whole-archive' flag.
+  ${LINKERFLAGPREFIX},--whole-archive
   bootloader # include bootloader library
+  ${LINKERFLAGPREFIX},--no-whole-archive
   ${OFFSETS_O_PATH}
   ${LIB_INCLUDE_DIR}
   ${TOOLCHAIN_LIBS}
@@ -23,11 +28,12 @@ add_custom_command(
 # This is done since CMake does not handle dependencies to files very
 # well, so this is done to be able to represent a dependency to the
 # generated 'bootloader.cmd' file.
+set(BOOTLOADER_LINKER_SCRIPT_NAME bootloader.cmd)
 add_custom_target(
   bootloader_script
   DEPENDS
   ${ALIGN_SIZING_DEP}
-  bootloader.cmd
+  ${BOOTLOADER_LINKER_SCRIPT_NAME}
   offsets_h
   )
 
@@ -70,12 +76,12 @@ add_custom_command(
 add_custom_target(bootloader_hex DEPENDS bootloader.hex)
 
 # Create list of all files to be merged.
-list(APPEND my_hex_files ${SIGNED_KERNEL_HEX_NAME})
-list(APPEND my_hex_files bootloader.hex)
+set(SIGNED_KERNEL_HEX_NAME signed_${KERNEL_HEX_NAME})
+set(PROVISION_HEX_NAME provision_data.hex)
 
-# Create a list of the targets of the files to be merged.
-list(APPEND my_hex_targets zephyr_hex)
-list(APPEND my_hex_targets bootloader_hex)
+list(APPEND hex_files_to_merge ${SIGNED_KERNEL_HEX_NAME})
+list(APPEND hex_files_to_merge bootloader.hex)
+list(APPEND hex_files_to_merge ${PROVISION_HEX_NAME})
 
 # Create custom command for merging all files in the list.
 add_custom_command(
@@ -83,9 +89,10 @@ add_custom_command(
   COMMAND
   ${PYTHON_EXECUTABLE}
   ${ZEPHYR_BASE}/scripts/mergehex.py
-  -i ${my_hex_files}
+  -i ${hex_files_to_merge}
   -o merged.hex
-  DEPENDS ${my_hex_targets} sign
+  COMMENT "Merging ${hex_files_to_merge}, storing to merged.hex"
+  DEPENDS bootloader_hex sign provision_hex_file
   )
 
 add_custom_target(merged_hex ALL DEPENDS merged.hex)
@@ -108,7 +115,7 @@ if (DEFINED SB_VALIDATION_PEM_PATH)
   set(CONFIG_SB_VALIDATION_PEM_PATH ${SB_VALIDATION_PEM_PATH})
 endif()
 
-# Lastly, check if it is not set anywhere, it which case a new 
+# Lastly, check if it is not set anywhere, it which case a new
 # PEM file will be genareted.
 if( "${CONFIG_SB_VALIDATION_PEM_PATH}" STREQUAL "")
   set(CONFIG_SB_VALIDATION_PEM_PATH ${PROJECT_BINARY_DIR}/GENERATED_NON_SECURE_PEM.pem)
@@ -141,7 +148,6 @@ else()
 endif()
 
 
-set(SIGNED_KERNEL_HEX_NAME signed_${KERNEL_HEX_NAME})
 
 set(cmd
   ${CMAKE_COMMAND} -E env
@@ -154,7 +160,7 @@ set(cmd
   --pem ${CONFIG_SB_VALIDATION_PEM_PATH}
   --magic-value 1122334455667788
   DEPENDS ${logical_target_for_zephyr_elf} ${KEYGEN_TARGET}
-  WORKING_DIRECTORY ${APPLICATION_BINARY_DIR}
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   )
 
 add_custom_target(sign
@@ -165,6 +171,34 @@ add_custom_target(sign
   "Creating validation for ${KERNEL_HEX_NAME}, storing to ${SIGNED_KERNEL_HEX_NAME}"
   USES_TERMINAL
   )
+
+
+set(cmd
+  ${CMAKE_COMMAND} -E env
+  PYTHONPATH=${ZEPHYR_BASE}/scripts/
+  ${PYTHON_EXECUTABLE}
+  ${ZEPHYR_BASE}/scripts/provision.py
+  --generated-conf-file ${PROJECT_BINARY_DIR}/include/generated/generated_dts_board.conf
+  --public-key-hashes
+    ${CONFIG_PUBLIC_KEY_0_HASH}
+    ${CONFIG_PUBLIC_KEY_1_HASH}
+    ${CONFIG_PUBLIC_KEY_2_HASH}
+    ${CONFIG_PUBLIC_KEY_3_HASH}
+    ${CONFIG_PUBLIC_KEY_4_HASH}
+  --output ${PROVISION_HEX_NAME}
+  DEPENDS ${logical_target_for_zephyr_elf}
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  )
+
+add_custom_target(provision_hex_file
+  ALL
+  COMMAND
+  ${cmd}
+  COMMENT
+  "Creating provision data for BL0, storing to ${PROJECT_BINARY_DIR}/${PROVISION_HEX_NAME}"
+  USES_TERMINAL
+  )
+
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   set(option ${LINKERFLAGPREFIX},--print-memory-usage)
