@@ -100,6 +100,7 @@ static void apply_config(nrfx_uart_t        const * p_instance,
     }
 }
 
+#if!defined(NRFX_UART0_NO_INTERRUPTS)
 static void interrupts_enable(nrfx_uart_t const * p_instance,
                               uint8_t             interrupt_priority)
 {
@@ -111,6 +112,8 @@ static void interrupts_enable(nrfx_uart_t const * p_instance,
                           interrupt_priority);
     NRFX_IRQ_ENABLE(nrfx_get_irq_number((void *)p_instance->p_reg));
 }
+#else
+#endif
 
 static void interrupts_disable(nrfx_uart_t const * p_instance)
 {
@@ -193,10 +196,13 @@ nrfx_err_t nrfx_uart_init(nrfx_uart_t const *        p_instance,
     p_cb->handler   = event_handler;
     p_cb->p_context = p_config->p_context;
 
+#if !defined(NRFX_UART0_NO_INTERRUPTS)
     if (p_cb->handler)
     {
         interrupts_enable(p_instance, p_config->interrupt_priority);
     }
+#else
+#endif
 
     nrf_uart_enable(p_instance->p_reg);
     p_cb->rx_buffer_length           = 0;
@@ -637,4 +643,6 @@ void nrfx_uart_0_irq_handler(void)
 }
 #endif
 
+#else
+#error "NO uart enabled"
 #endif // NRFX_CHECK(NRFX_UART_ENABLED)

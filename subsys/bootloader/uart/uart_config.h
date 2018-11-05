@@ -1,0 +1,2 @@
+#define NRFX_UART_ENABLED 1
+#define NRFX_UART0_ENABLED 1
