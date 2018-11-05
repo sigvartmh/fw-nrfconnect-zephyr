@@ -9,24 +9,9 @@ from intelhex import IntelHex
 
 import argparse
 import struct
-import os
 
 
-def merge_hex_files(output, input_hex_files, verbose):
-    ih = IntelHex()
-
-    for hex_file_path in input_hex_files:
-        if not os.path.isfile(hex_file_path):
-            raise RuntimeError("%s is not a valid file path." % hex_file_path)
-        to_merge = IntelHex(hex_file_path)
-        if verbose:
-            print("'%s' - Start address: %s" % (hex_file_path, to_merge.start_addr))
-
-        ih.merge(to_merge, overlap='replace')
-    ih.write_hex_file(output)
-
-
-def generate_provision_hex_file(s0_address, s1_address, hashes, end_address, output):
+def generate_provision_hex_file(s0_address, s1_address, hashes, provision_address, output):
     # Add addresses
     provision_data = struct.pack('II', s0_address, s1_address)
 
@@ -40,7 +25,7 @@ def generate_provision_hex_file(s0_address, s1_address, hashes, end_address, out
         provision_data += struct.pack(single_hash_format_string, *proper_hash)
 
     ih = IntelHex()
-    ih.frombytes(provision_data, end_address-len(provision_data))
+    ih.frombytes(provision_data, offset=provision_address)
     ih.write_hex_file(output)
 
 
@@ -78,8 +63,12 @@ def parse_args():
 def main():
     args = parse_args()
 
-    s0_address, s1_address, end_address = find_provision_memory_section(args.generated_conf_file)
-    generate_provision_hex_file(s0_address, s1_address, args.public_key_hashes, end_address, args.output)
+    s0_address, s1_address, provision_address = find_provision_memory_section(args.generated_conf_file)
+    generate_provision_hex_file(s0_address=s0_address,
+                                s1_address=s1_address,
+                                hashes=args.public_key_hashes,
+                                provision_address=provision_address,
+                                output=args.output)
 
 
 if __name__ == "__main__":

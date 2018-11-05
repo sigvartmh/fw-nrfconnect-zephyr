@@ -76,12 +76,12 @@ add_custom_command(
 add_custom_target(bootloader_hex DEPENDS bootloader.hex)
 
 # Create list of all files to be merged.
+set(SIGNED_KERNEL_HEX_NAME signed_${KERNEL_HEX_NAME})
+set(PROVISION_HEX_NAME provision_data.hex)
+
 list(APPEND hex_files_to_merge ${SIGNED_KERNEL_HEX_NAME})
 list(APPEND hex_files_to_merge bootloader.hex)
-
-# Create a list of the targets of the files to be merged.
-list(APPEND my_hex_targets zephyr_hex)
-list(APPEND my_hex_targets bootloader_hex)
+list(APPEND hex_files_to_merge ${PROVISION_HEX_NAME})
 
 # Create custom command for merging all files in the list.
 add_custom_command(
@@ -91,7 +91,8 @@ add_custom_command(
   ${ZEPHYR_BASE}/scripts/mergehex.py
   -i ${hex_files_to_merge}
   -o merged.hex
-  DEPENDS ${my_hex_targets} sign provision_hex_file
+  COMMENT "Merging ${hex_files_to_merge}, storing to merged.hex"
+  DEPENDS bootloader_hex sign provision_hex_file
   )
 
 add_custom_target(merged_hex ALL DEPENDS merged.hex)
@@ -147,7 +148,6 @@ else()
 endif()
 
 
-set(SIGNED_KERNEL_HEX_NAME signed_${KERNEL_HEX_NAME})
 
 set(cmd
   ${CMAKE_COMMAND} -E env
@@ -160,7 +160,7 @@ set(cmd
   --pem ${CONFIG_SB_VALIDATION_PEM_PATH}
   --magic-value 1122334455667788
   DEPENDS ${logical_target_for_zephyr_elf} ${KEYGEN_TARGET}
-  WORKING_DIRECTORY ${APPLICATION_BINARY_DIR}
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   )
 
 add_custom_target(sign
@@ -172,7 +172,6 @@ add_custom_target(sign
   USES_TERMINAL
   )
 
-set(PROVISION_HEX_NAME provision_data.hex)
 
 set(cmd
   ${CMAKE_COMMAND} -E env
@@ -186,9 +185,9 @@ set(cmd
     ${CONFIG_PUBLIC_KEY_2_HASH}
     ${CONFIG_PUBLIC_KEY_3_HASH}
     ${CONFIG_PUBLIC_KEY_4_HASH}
-  --output ${PROJECT_BINARY_DIR}/${PROVISION_HEX_NAME}
+  --output ${PROVISION_HEX_NAME}
   DEPENDS ${logical_target_for_zephyr_elf}
-  WORKING_DIRECTORY ${APPLICATION_BINARY_DIR}
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   )
 
 add_custom_target(provision_hex_file
@@ -200,8 +199,6 @@ add_custom_target(provision_hex_file
   USES_TERMINAL
   )
 
-# Add to list of files to be merged.
-list(APPEND hex_files_to_merge ${PROJECT_BINARY_DIR}/${PROVISION_HEX_NAME})
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   set(option ${LINKERFLAGPREFIX},--print-memory-usage)
