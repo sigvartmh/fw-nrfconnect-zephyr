@@ -5,10 +5,11 @@
 
 #ifdef CONFIG_SB_DEBUG_PORT_SEGGER_RTT
 #include <SEGGER_RTT_sb.h>
-#define debug_print(fmt, ...) do{if(CONFIG_SB_DEBUG_PORT_SEGGER_RTT){SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
+#define debug_print(fmt, ...) do{if(CONFIG_SB_DEBUG_PORT_SEGGER_RTT){\
+SEGGER_RTT_printf(0, fmt, __VA_ARGS__);}}while(0)
 #elif defined(CONFIG_SB_DEBUG_PORT_UART)
-#include "uart.h"
-#define debug_print(fmt, ...) do{if(CONFIG_SB_DEBUG_PORT_UART){uart_printf(fmt, __VA_ARGS__);}}while(0)
+#include "uart_printf.h"
+//#define debug_print(fmt, ...) do{if(CONFIG_SB_DEBUG_PORT_UART){uart_printf(fmt, __VA_ARGS__);}}while(0)
 #else
 #define debug_print(...) do{}while(0)
 #endif /* CONFIG_SB_DEBUG_PORT_SEGGER_RTT */
@@ -31,7 +32,6 @@
 #define BUTTON1 0x3041000
 #define BUTTON2 0x3040800
 #define BUTTON4 0x1041800
-
 
 #define EnablePrivilegedMode() __asm("SVC #0")
 
@@ -100,10 +100,12 @@ int main(void)
 	SEGGER_RTT_Init();
 #elif defined(CONFIG_SB_DEBUG_PORT_UART)
 	uart_init();
+	uart_printf("Test print\r\n", sizeof("Test print\r\n"));
+	uart_printf("Boot From app\r\n", sizeof("Boot from app\r\n"));
 #endif /* CONFIG_SB_RTT */
 	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	/* Unreachable */
-	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
-	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
+	//boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
+	//boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	return 0;
 }
