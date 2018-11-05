@@ -92,6 +92,25 @@ config SB_DEBUG_PORT_SEGGER_RTT_MEMCPY_USE_BYTELOOP
 	bool "Use a simple byte-loop instead of standard memcpy"
 endif
 
+
+menu "Public Key hashes"
+config PUBLIC_KEY_0_HASH
+	string "ASCII-hex formatted hash of public key 0."
+	default "01223344556677881122334455667788"
+config PUBLIC_KEY_1_HASH
+	string "ASCII-hex formatted hash of public key 1."
+	default "11223344556677881122334455667788"
+config PUBLIC_KEY_2_HASH
+	string "ASCII-hex formatted hash of public key 2."
+	default "21223344556677881122334455667788"
+config PUBLIC_KEY_3_HASH
+	string "ASCII-hex formatted hash of public key 3."
+	default "31223344556677881122334455667788"
+config PUBLIC_KEY_4_HASH
+	string "ASCII-hex formatted hash of public key 4."
+	default "41223344556677881122334455667788"
+endmenu
+
 endmenu
 
 endif

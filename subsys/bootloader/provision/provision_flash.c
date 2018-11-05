@@ -15,12 +15,9 @@ typedef struct {
 } provision_flash_t;
 
 
-/* This symbol is stored at the page memory region named 'provision' in dts. */
-__attribute__ ((section(".PROVISION_DATA"))) volatile const provision_flash_t provision_data = {
-	.s0_address = CONFIG_FLASH_BASE_ADDRESS + FLASH_AREA_S0_OFFSET,
-	.s1_address = CONFIG_FLASH_BASE_ADDRESS + FLASH_AREA_S1_OFFSET,
-	.pkd = {0}
-};
+/* This symbol is stored at the page memory region named 'provision' in dts. 
+ * It works as a placeholder here, and is filled by a python script 'provision.py'. */
+__attribute__ ((section(".PROVISION_DATA"))) volatile const provision_flash_t provision_data;
 
 uint32_t s0_address_read(void)
 {
