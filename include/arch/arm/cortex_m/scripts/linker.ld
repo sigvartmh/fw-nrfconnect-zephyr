@@ -40,6 +40,14 @@
   #define SKIP_TO_KINETIS_FLASH_CONFIG
 #endif
 
+
+#if defined(CONFIG_SECURE_BOOT)
+  #define SKIP_TO_SECURE_BOOT_FLASH_CONFIG . = 0x400;
+#else
+  #define SKIP_TO_SECURE_BOOT_FLASH_CONFIG
+#endif
+
+
 #define ROM_ADDR (CONFIG_FLASH_BASE_ADDRESS + CONFIG_FLASH_LOAD_OFFSET)
 #ifdef CONFIG_TI_CCFG_PRESENT
   #define CCFG_SIZE 88
@@ -148,6 +156,10 @@ SECTIONS
 	SKIP_TO_KINETIS_FLASH_CONFIG
 	KEEP(*(.kinetis_flash_config))
 	KEEP(*(".kinetis_flash_config.*"))
+
+    SKIP_TO_SECURE_BOOT_FLASH_CONFIG
+    /* Proper data will be placed here by a python script */
+    KEEP(*(.secure_boot_flash_config_place_holder))
 
 #ifdef CONFIG_GEN_SW_ISR_TABLE
 	KEEP(*(SW_ISR_TABLE))

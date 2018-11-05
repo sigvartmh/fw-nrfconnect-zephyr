@@ -85,6 +85,10 @@ static void boot_from(uint32_t *address)
 	((void (*)(void))address[1])();
 }
 
+
+/* Define placeholder for firmware metadata. A python script will put the actual data there. */
+static bl1_firmware_info firmware_info_placeholder;
+
 int main(void)
 {
 #if CONFIG_SB_FLASH_LOCKDOWN
@@ -95,7 +99,7 @@ int main(void)
 #elif defined(CONFIG_SB_DEBUG_PORT_UART)
 	uart_init();
 #endif /* CONFIG_SB_DEBUG */
- 
+
 	uint8_t dummy[256];
 	crypto_root_of_trust(dummy, dummy, dummy, 256, dummy, dummy, 256, dummy);
 
