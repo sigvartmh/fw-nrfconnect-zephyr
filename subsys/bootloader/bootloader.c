@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <nrf.h>
 #include <generated_dts_board.h>
-
+#include "bl0_crypto.h"
 
 #ifdef CONFIG_SB_DEBUG_PORT_SEGGER_RTT
 #include <SEGGER_RTT_sb.h>
@@ -26,12 +26,6 @@
 #define BUTTON2_GPIO (GPIO_KEYS_BUTTON_1_GPIO_PIN)
 #define BUTTON3_GPIO (GPIO_KEYS_BUTTON_2_GPIO_PIN)
 #define BUTTON4_GPIO (GPIO_KEYS_BUTTON_3_GPIO_PIN)
-
-#define BUTTON3 0x2041800
-#define BUTTON1 0x3041000
-#define BUTTON2 0x3040800
-#define BUTTON4 0x1041800
-
 
 #define EnablePrivilegedMode() __asm("SVC #0")
 
@@ -100,7 +94,11 @@ int main(void)
 	SEGGER_RTT_Init();
 #elif defined(CONFIG_SB_DEBUG_PORT_UART)
 	uart_init();
-#endif /* CONFIG_SB_RTT */
+#endif /* CONFIG_SB_DEBUG */
+ 
+	uint8_t dummy[256];
+	crypto_root_of_trust(dummy, dummy, dummy, 256, dummy, dummy, 256, dummy);
+
 	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	/* Unreachable */
 	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));

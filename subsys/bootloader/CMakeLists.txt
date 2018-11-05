@@ -4,6 +4,13 @@
 
 add_library(bootloader bootloader.c)
 
+add_library(bootloader
+  bootloader.c
+  )
+
+add_subdirectory(bl0_crypto)
+target_link_libraries(bootloader PRIVATE bl0_crypto)
+
 add_subdirectory(c_runtime_setup)
 target_link_libraries(bootloader PRIVATE c_runtime_setup)
 
@@ -21,7 +28,6 @@ target_link_libraries_ifdef(CONFIG_SB_DEBUG_PORT_SEGGER_RTT bootloader PRIVATE s
 
 add_dependencies(bootloader offsets_h)
 target_link_libraries(bootloader PRIVATE zephyr_interface)
-
 
 target_include_directories_ifdef(CONFIG_SB_FLASH_LOCKDOWN
   bootloader 
