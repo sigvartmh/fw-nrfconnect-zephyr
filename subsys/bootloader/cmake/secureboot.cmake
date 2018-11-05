@@ -28,11 +28,12 @@ add_custom_command(
 # This is done since CMake does not handle dependencies to files very
 # well, so this is done to be able to represent a dependency to the
 # generated 'bootloader.cmd' file.
+set(BOOTLOADER_LINKER_SCRIPT_NAME bootloader.cmd)
 add_custom_target(
   bootloader_script
   DEPENDS
   ${ALIGN_SIZING_DEP}
-  bootloader.cmd
+  ${BOOTLOADER_LINKER_SCRIPT_NAME}
   offsets_h
   )
 
@@ -75,8 +76,8 @@ add_custom_command(
 add_custom_target(bootloader_hex DEPENDS bootloader.hex)
 
 # Create list of all files to be merged.
-list(APPEND my_hex_files ${SIGNED_KERNEL_HEX_NAME})
-list(APPEND my_hex_files bootloader.hex)
+list(APPEND hex_files_to_merge ${SIGNED_KERNEL_HEX_NAME})
+list(APPEND hex_files_to_merge bootloader.hex)
 
 # Create a list of the targets of the files to be merged.
 list(APPEND my_hex_targets zephyr_hex)
@@ -88,9 +89,9 @@ add_custom_command(
   COMMAND
   ${PYTHON_EXECUTABLE}
   ${ZEPHYR_BASE}/scripts/mergehex.py
-  -i ${my_hex_files}
+  -i ${hex_files_to_merge}
   -o merged.hex
-  DEPENDS ${my_hex_targets} sign
+  DEPENDS ${my_hex_targets} sign provision_hex_file
   )
 
 add_custom_target(merged_hex ALL DEPENDS merged.hex)
@@ -170,6 +171,37 @@ add_custom_target(sign
   "Creating validation for ${KERNEL_HEX_NAME}, storing to ${SIGNED_KERNEL_HEX_NAME}"
   USES_TERMINAL
   )
+
+set(PROVISION_HEX_NAME provision_data.hex)
+
+set(cmd
+  ${CMAKE_COMMAND} -E env
+  PYTHONPATH=${ZEPHYR_BASE}/scripts/
+  ${PYTHON_EXECUTABLE}
+  ${ZEPHYR_BASE}/scripts/provision.py
+  --generated-conf-file ${PROJECT_BINARY_DIR}/include/generated/generated_dts_board.conf
+  --public-key-hashes
+    ${CONFIG_PUBLIC_KEY_0_HASH}
+    ${CONFIG_PUBLIC_KEY_1_HASH}
+    ${CONFIG_PUBLIC_KEY_2_HASH}
+    ${CONFIG_PUBLIC_KEY_3_HASH}
+    ${CONFIG_PUBLIC_KEY_4_HASH}
+  --output ${PROJECT_BINARY_DIR}/${PROVISION_HEX_NAME}
+  DEPENDS ${logical_target_for_zephyr_elf}
+  WORKING_DIRECTORY ${APPLICATION_BINARY_DIR}
+  )
+
+add_custom_target(provision_hex_file
+  ALL
+  COMMAND
+  ${cmd}
+  COMMENT
+  "Creating provision data for BL0, storing to ${PROJECT_BINARY_DIR}/${PROVISION_HEX_NAME}"
+  USES_TERMINAL
+  )
+
+# Add to list of files to be merged.
+list(APPEND hex_files_to_merge ${PROJECT_BINARY_DIR}/${PROVISION_HEX_NAME})
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   set(option ${LINKERFLAGPREFIX},--print-memory-usage)
