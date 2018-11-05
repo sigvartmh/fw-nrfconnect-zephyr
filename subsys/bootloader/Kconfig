@@ -7,7 +7,7 @@ config SECURE_BOOT
 	bool "Secure Boot Support"
 
 config TEST_SECURE_BOOT
-	bool "Test Secure Boot"
+	bool
 
 if (SECURE_BOOT || TEST_SECURE_BOOT)
 
