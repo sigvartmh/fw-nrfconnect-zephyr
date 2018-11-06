@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <nrf.h>
 #include <generated_dts_board.h>
+#include "bl0_crypto.h"
 
 
 #ifdef CONFIG_SB_DEBUG_PORT_SEGGER_RTT
@@ -101,6 +102,10 @@ int main(void)
 #elif defined(CONFIG_SB_DEBUG_PORT_UART)
 	uart_init();
 #endif /* CONFIG_SB_RTT */
+
+	uint8_t dummy[256];
+	crypto_root_of_trust(dummy, dummy, dummy, 256, dummy, dummy, 256, dummy);
+
 	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	/* Unreachable */
 	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_S1_OFFSET));
