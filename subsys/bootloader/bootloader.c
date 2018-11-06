@@ -88,9 +88,6 @@ static void boot_from(uint32_t *address)
 }
 
 
-/* Define placeholder for firmware metadata. A python script will put the actual data there. */
-static bl1_firmware_info firmware_info_placeholder;
-
 int main(void)
 {
 #if CONFIG_SB_FLASH_LOCKDOWN
