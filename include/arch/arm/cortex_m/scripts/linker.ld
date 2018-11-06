@@ -123,6 +123,8 @@ SECTIONS
     GROUP_START(ROMABLE_REGION)
 
 	_image_rom_start = ROM_ADDR;
+	_used_rom_start = ROM_ADDR;
+
 #ifdef LINKER_OUTPUT_NAME_bootloader
     provision :
     {
@@ -167,6 +169,12 @@ SECTIONS
 	KEEP(*(SW_ISR_TABLE))
 #endif
 	_vector_end = .;
+
+#if !defined(LINKER_OUTPUT_NAME_bootloader) && defined(CONFIG_SB_FIRMWARE_INFO_OFFSET)
+	. = CONFIG_SB_FIRMWARE_INFO_OFFSET;
+	KEEP(*(.firmware_info))
+#endif
+
 	_image_text_start = .;
 	*(.text)
 	*(".text.*")
@@ -485,6 +493,13 @@ SECTIONS
 #ifdef CONFIG_GEN_ISR_TABLES
 #include <linker/intlist.ld>
 #endif
+
+
+    SECTION_PROLOGUE(.dummy,(NOLOAD),)
+        {
+		_used_rom_end  = .;
+		_used_rom_size = _used_rom_end - _used_rom_start;
+        } GROUP_LINK_IN(ROMABLE_REGION)
 
 #include <linker/debug-sections.ld>
 
