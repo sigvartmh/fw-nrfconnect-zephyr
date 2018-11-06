@@ -121,6 +121,12 @@ endif
 
 
 menu "Public Key hashes"
+config SB_PUBLIC_KEY_HASH_SIZE
+    int "Public key hash size (bits)"
+    default 128 
+config SB_NUM_PUBLIC_KEY_HASHES
+    int "Number of public key hashes to store"
+    default 5
 config PUBLIC_KEY_0_HASH
 	string "ASCII-hex formatted hash of public key 0."
 	default "01223344556677881122334455667788"

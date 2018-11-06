@@ -1,17 +1,16 @@
 #include "provision.h"
 #include "generated_dts_board.h"
 
-#define PK_SIZE 128 /* TODO take these two out to kconf */
-#define NUM_PK 5
+#define PK_LEN (CONFIG_SB_PUBLIC_KEY_HASH_SIZE / 8)
 
 /* To avoid giving a pointer to the provisioned public keys, copy
  * the key material to this buffer, and return the pointer to it. */
-static uint8_t key_buf[PK_SIZE];
+static uint8_t key_buf[PK_LEN];
 
 typedef struct {
 	uint32_t s0_address;
 	uint32_t s1_address;
-	uint8_t  pkd[NUM_PK * PK_SIZE];
+	uint8_t  pkd[CONFIG_SB_NUM_PUBLIC_KEY_HASHES * PK_LEN];
 } provision_flash_t;
 
 
@@ -32,8 +31,8 @@ uint32_t s1_address_read(void)
 const uint8_t * public_key_data_read(uint32_t key_index)
 {
 	uint32_t i = 0;
-	for(i = 0; i < PK_SIZE; ++i) {
-		key_buf[i] = provision_data.pkd[key_index*PK_SIZE + i];
+	for(i = 0; i < PK_LEN; ++i) {
+		key_buf[i] = provision_data.pkd[key_index*PK_LEN + i];
 	}
 	return key_buf;
 }
