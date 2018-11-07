@@ -9,6 +9,10 @@ target_link_libraries(bootloader PRIVATE bl0_crypto)
 add_subdirectory(c_runtime_setup)
 target_link_libraries(bootloader PRIVATE c_runtime_setup)
 
+add_subdirectory(provision)
+target_link_libraries(bootloader PRIVATE provision)
+target_include_directories(bootloader PRIVATE provision)
+
 add_subdirectory_ifdef(CONFIG_SECURE_BOOT_DEBUG libc)
 target_link_libraries_ifdef(SECURE_BOOT_DEBUG bootloader PRIVATE libc)
 

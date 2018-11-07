@@ -188,7 +188,11 @@
 		};
 		app_partition: partition@1C000 {
 			label = "app";
-			reg = <0x1C000 0x000DE000>;
+			reg = <0x1C000 0x000E3000>;
+		};
+		provision_partition: partition@FF000 {
+			label = "provision";
+			reg = <0x000FF000 0x00001000>;
 		};
 #else
 		boot_partition: partition@0 {

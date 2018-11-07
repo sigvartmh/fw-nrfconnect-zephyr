@@ -18,6 +18,8 @@
 #include <lockdown.h>
 #endif
 
+#include <provision.h>
+
 #define LED1_GPIO (GPIO_LEDS_LED_0_GPIO_PIN)
 #define LED2_GPIO (GPIO_LEDS_LED_1_GPIO_PIN)
 #define LED3_GPIO (GPIO_LEDS_LED_2_GPIO_PIN)
@@ -103,8 +105,13 @@ int main(void)
 	uart_init();
 #endif /* CONFIG_SB_RTT */
 
+	/* Read first public key */
+	const uint8_t * p_pk_data = public_key_data_read(0);
+	(void)p_pk_data;
+
 	uint8_t dummy[256];
 	crypto_root_of_trust(dummy, dummy, dummy, 256, dummy, dummy, 256, dummy);
+
 
 	boot_from((uint32_t *)(0x00000000 + FLASH_AREA_APP_OFFSET));
 	/* Unreachable */
