@@ -336,7 +336,6 @@ config BOOTLOADER_MCUBOOT
 	    * Including dts/common/mcuboot.overlay when building the Device
 	      Tree in order to place and link the image at the slot0 offset
 
-source "subsys/bootloader/Kconfig"
           
 config BOOTLOADER_ESP_IDF
 	bool "ESP-IDF bootloader support"

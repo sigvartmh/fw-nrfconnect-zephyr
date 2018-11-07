@@ -682,6 +682,7 @@ if(CONFIG_CPU_HAS_MPU AND CONFIG_USERSPACE)
   endif()
 endif()
 
+
 function(construct_add_custom_command_for_linker_pass linker_output_name output_variable)
   set(linker_cmd_file_name ${linker_output_name}.cmd)
 
@@ -731,7 +732,10 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
 endfunction()
 
 get_filename_component(BASE_NAME ${CMAKE_CURRENT_BINARY_DIR} NAME)
+print(LINKER_PASS_DEFINE)
 construct_add_custom_command_for_linker_pass(linker custom_command)
+message("zephyr")
+print(custom_command)
 add_custom_command(
   ${custom_command}
 )
@@ -1275,10 +1279,6 @@ add_custom_command(
   COMMENT "Generating files from zephyr.elf for board: ${BOARD}"
   # NB: COMMENT only works for some CMake-Generators
 )
-
-if(CONFIG_SECURE_BOOT)
-include(${ZEPHYR_BASE}/subsys/bootloader/cmake/secureboot.cmake)
-endif()
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   # Use --print-memory-usage with the first link.
