@@ -14,15 +14,7 @@ import struct
 def generate_provision_hex_file(s0_address, s1_address, hashes, provision_address, output):
     # Add addresses
     provision_data = struct.pack('II', s0_address, s1_address)
-
-    num_bytes_for_hashes = 0
-
-    # Convert from ascii-hex to int list
-    for h in hashes:
-        proper_hash = [int(h[x:x + 2], 16) for x in range(0, len(h), 2)]
-        single_hash_format_string = "B" * len(proper_hash)
-        num_bytes_for_hashes += len(proper_hash)
-        provision_data += struct.pack(single_hash_format_string, *proper_hash)
+    provision_data += b''.join([bytes(h, 'utf-8') for h in hashes])
 
     ih = IntelHex()
     ih.frombytes(provision_data, offset=provision_address)
