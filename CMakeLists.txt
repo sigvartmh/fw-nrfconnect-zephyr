@@ -1276,9 +1276,10 @@ add_custom_command(
   # NB: COMMENT only works for some CMake-Generators
 )
 
-if(CONFIG_SECURE_BOOT)
-include(${ZEPHYR_BASE}/subsys/bootloader/cmake/secureboot.cmake)
+if(EXISTS ${NRF_DIR})
+  include(${NRF_DIR}/after.cmake)
 endif()
+
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   # Use --print-memory-usage with the first link.
