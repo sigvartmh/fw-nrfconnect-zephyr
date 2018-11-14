@@ -114,4 +114,4 @@ else()
   # after mbedtls_external on the linkers command line.
 endif()
 
-target_link_libraries(mbedTLS INTERFACE zephyr_interface)
+target_link_libraries(mbedTLS INTERFACE ${IMAGE}zephyr_interface)

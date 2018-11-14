@@ -1,11 +1,9 @@
-
 add_library(CMSIS INTERFACE)
 
-target_include_directories(CMSIS INTERFACE ${PROJECT_SOURCE_DIR}/include/cmsis_rtos_v1)
+target_include_directories(CMSIS INTERFACE ${ZEPHYR_BASE}/include/cmsis_rtos_v1)
 
 zephyr_library()
-zephyr_library_sources_ifdef(
-  CONFIG_CMSIS_RTOS_V1
+zephyr_library_sources(
   cmsis_thread.c
   cmsis_wait.c
   cmsis_kernel.c
