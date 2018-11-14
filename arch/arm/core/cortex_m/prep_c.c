@@ -105,10 +105,12 @@ extern FUNC_NORETURN void _Cstart(void);
  * @return N/A
  */
 
-/* Create an entry point to main to be called from the _PrepC function */
-#ifdef CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
+/* Create an entry point to main to be called from the _PrepC function
+ * as we don't want to initialize the Zephyr Kernel
+ */
+#ifdef NO_KERNEL_INIT
 extern int main();
-#endif /* CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR */
+#endif /* NO_KERNEL_INIT */
 
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
 	extern u64_t __start_time_stamp;
@@ -124,8 +126,10 @@ void _PrepC(void)
 #endif
 /* Call main before zephyr startup code tries to setup the kernel runtime
  * as we only want the C runtime and not the threading, contex switching etc.
+ * we use a define instead of a KConfig variable due to the limitation of only
+ * one KConfig instance.
  */
-#ifdef CONFIG_SB_C_RUNTIME_SETUP_VARIANT_ZEPHYR
+#ifdef NO_KERNEL_INIT
 	main();
 #else
 	_Cstart();
