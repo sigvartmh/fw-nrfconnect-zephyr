@@ -68,4 +68,19 @@ config SPI_SAM
 	default y
 endif # SPI
 
+if USB
+config USB_DC_SAM
+	default y
+endif # USB
+
+if ENTROPY_GENERATOR
+config ENTROPY_SAM_RNG
+	default y
+endif # ENTROPY_GENERATOR
+
+if FLASH
+config SOC_FLASH_SAM
+	default y
+endif # FLASH
+
 endif # SOC_SERIES_SAME70

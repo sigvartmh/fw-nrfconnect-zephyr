@@ -9,9 +9,9 @@
 #include <nrfx_qdec.h>
 #include <hal/nrf_gpio.h>
 
-#define SYS_LOG_DOMAIN "qdec_nrfx"
-#define SYS_LOG_LEVEL CONFIG_SYS_LOG_QDEC_NRFX_LEVEL
-#include <logging/sys_log.h>
+#define LOG_LEVEL CONFIG_SENSOR_LOG_LEVEL
+#include <logging/log.h>
+LOG_MODULE_REGISTER(qdec_nrfx);
 
 
 #define FULL_ANGLE 360
@@ -58,7 +58,7 @@ static int qdec_nrfx_sample_fetch(struct device *dev, enum sensor_channel chan)
 
 	ARG_UNUSED(dev);
 
-	SYS_LOG_DBG("");
+	LOG_DBG("");
 
 	if ((chan != SENSOR_CHAN_ALL) && (chan != SENSOR_CHAN_ROTATION)) {
 		return -ENOTSUP;
@@ -80,8 +80,7 @@ static int qdec_nrfx_channel_get(struct device       *dev,
 	s32_t acc;
 
 	ARG_UNUSED(dev);
-
-	SYS_LOG_DBG("");
+	LOG_DBG("");
 
 	if (chan != SENSOR_CHAN_ROTATION) {
 		return -ENOTSUP;
@@ -92,14 +91,17 @@ static int qdec_nrfx_channel_get(struct device       *dev,
 	data->acc = 0;
 	irq_unlock(key);
 
-	static_assert(CONFIG_QDEC_STEPS > 0, "only positive number valid");
-	static_assert(CONFIG_QDEC_STEPS <= 2148, "overflow possible");
+	static_assert(DT_NORDIC_NRF_QDEC_QDEC_0_STEPS > 0,
+		      "only positive number valid");
+	static_assert(DT_NORDIC_NRF_QDEC_QDEC_0_STEPS <= 2148,
+		      "overflow possible");
 
-	val->val1 = (acc * FULL_ANGLE) / CONFIG_QDEC_STEPS;
-	val->val2 = (acc * FULL_ANGLE) - (val->val1 * CONFIG_QDEC_STEPS);
+	val->val1 = (acc * FULL_ANGLE) / DT_NORDIC_NRF_QDEC_QDEC_0_STEPS;
+	val->val2 = (acc * FULL_ANGLE)
+		    - (val->val1 * DT_NORDIC_NRF_QDEC_QDEC_0_STEPS);
 	if (val->val2 != 0) {
 		val->val2 *= 1000000;
-		val->val2 /= CONFIG_QDEC_STEPS;
+		val->val2 /= DT_NORDIC_NRF_QDEC_QDEC_0_STEPS;
 	}
 
 	return 0;
@@ -113,8 +115,7 @@ static int qdec_nrfx_trigger_set(struct device               *dev,
 	unsigned int key;
 
 	ARG_UNUSED(dev);
-
-	SYS_LOG_DBG("");
+	LOG_DBG("");
 
 	if (trig->type != SENSOR_TRIG_DATA_READY) {
 		return -ENOTSUP;
@@ -156,18 +157,18 @@ static void qdec_nrfx_event_handler(nrfx_qdec_event_t event)
 		break;
 
 	default:
-		SYS_LOG_ERR("unhandled event (0x%x)", event.type);
+		LOG_ERR("unhandled event (0x%x)", event.type);
 		break;
-	};
+	}
 }
 
 static void qdec_nrfx_gpio_ctrl(bool enable)
 {
-#if defined(CONFIG_QDEC_ENABLE_PIN)
+#if defined(DT_NORDIC_NRF_QDEC_QDEC_0_ENABLE_PIN)
 	uint32_t val = (enable)?(0):(1);
 
-	nrf_gpio_pin_write(CONFIG_QDEC_ENABLE_PIN, val);
-	nrf_gpio_cfg_output(CONFIG_QDEC_ENABLE_PIN);
+	nrf_gpio_pin_write(DT_NORDIC_NRF_QDEC_QDEC_0_ENABLE_PIN, val);
+	nrf_gpio_cfg_output(DT_NORDIC_NRF_QDEC_QDEC_0_ENABLE_PIN);
 #endif
 }
 
@@ -176,14 +177,14 @@ static int qdec_nrfx_init(struct device *dev)
 	static const nrfx_qdec_config_t config = {
 		.reportper          = NRF_QDEC_REPORTPER_40,
 		.sampleper          = NRF_QDEC_SAMPLEPER_2048us,
-		.psela              = CONFIG_QDEC_A_PIN,
-		.pselb              = CONFIG_QDEC_B_PIN,
-#if defined(CONFIG_QDEC_LED_PIN)
-		.pselled            = CONFIG_QDEC_LED_PIN,
+		.psela              = DT_NORDIC_NRF_QDEC_QDEC_0_A_PIN,
+		.pselb              = DT_NORDIC_NRF_QDEC_QDEC_0_B_PIN,
+#if defined(DT_NORDIC_NRF_QDEC_QDEC_0_LED_PIN)
+		.pselled            = DT_NORDIC_NRF_QDEC_QDEC_0_LED_PIN,
 #else
 		.pselled            = 0xFFFFFFFF, /* disabled */
 #endif
-		.ledpre             = CONFIG_QDEC_LED_PRE,
+		.ledpre             = DT_NORDIC_NRF_QDEC_QDEC_0_LED_PRE,
 		.ledpol             = NRF_QDEC_LEPOL_ACTIVE_HIGH,
 		.interrupt_priority = NRFX_QDEC_CONFIG_IRQ_PRIORITY,
 		.dbfen              = 0, /* disabled */
@@ -192,17 +193,18 @@ static int qdec_nrfx_init(struct device *dev)
 
 	nrfx_err_t nerr;
 
-	SYS_LOG_DBG("");
+	LOG_DBG("");
 
-	IRQ_CONNECT(CONFIG_QDEC_IRQ, CONFIG_QDEC_IRQ_PRI,
+	IRQ_CONNECT(DT_NORDIC_NRF_QDEC_QDEC_0_IRQ,
+		    DT_NORDIC_NRF_QDEC_QDEC_0_IRQ_PRIORITY,
 		    nrfx_isr, nrfx_qdec_irq_handler, 0);
 
 	nerr = nrfx_qdec_init(&config, qdec_nrfx_event_handler);
 	if (nerr == NRFX_ERROR_INVALID_STATE) {
-		SYS_LOG_ERR("qdec already in use");
+		LOG_ERR("qdec already in use");
 		return -EBUSY;
 	} else if (nerr != NRFX_SUCCESS) {
-		SYS_LOG_ERR("failed to initialize qdec");
+		LOG_ERR("failed to initialize qdec");
 		return -EFAULT;
 	}
 
@@ -276,7 +278,7 @@ static int qdec_nrfx_pm_control(struct device *dev,
 	struct qdec_nrfx_data *data = &qdec_nrfx_data;
 	int err;
 
-	SYS_LOG_DBG("");
+	LOG_DBG("");
 
 	switch (ctrl_command) {
 	case DEVICE_PM_GET_POWER_STATE:
@@ -304,6 +306,6 @@ static const struct sensor_driver_api qdec_nrfx_driver_api = {
 	.trigger_set  = qdec_nrfx_trigger_set,
 };
 
-DEVICE_DEFINE(qdec_nrfx, CONFIG_QDEC_NAME, qdec_nrfx_init,
+DEVICE_DEFINE(qdec_nrfx, DT_NORDIC_NRF_QDEC_QDEC_0_LABEL, qdec_nrfx_init,
 		qdec_nrfx_pm_control, NULL, NULL, POST_KERNEL,
 		CONFIG_SENSOR_INIT_PRIORITY, &qdec_nrfx_driver_api);

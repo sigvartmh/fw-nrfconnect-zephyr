@@ -7,14 +7,13 @@
  */
 
 #define LOG_MODULE_NAME ieee802154_kw41z
-#define LOG_LEVEL CONFIG_IEEE802154_LOG_LEVEL
+#define LOG_LEVEL CONFIG_IEEE802154_DRIVER_LOG_LEVEL
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #include <zephyr.h>
 #include <kernel.h>
-#include <board.h>
 #include <device.h>
 #include <init.h>
 #include <irq.h>

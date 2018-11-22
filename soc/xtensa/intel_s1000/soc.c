@@ -7,10 +7,11 @@
 #include <device.h>
 #include <xtensa_api.h>
 #include <xtensa/xtruntime.h>
-#include <board.h>
 #include <irq_nextlevel.h>
 #include <xtensa/hal.h>
 #include <init.h>
+
+#include "soc.h"
 
 #define LOG_LEVEL CONFIG_SOC_LOG_LEVEL
 #include <logging/log.h>
@@ -23,16 +24,16 @@ void _soc_irq_enable(u32_t irq)
 	struct device *dev_cavs, *dev_ictl;
 
 	switch (XTENSA_IRQ_NUMBER(irq)) {
-	case CAVS_ICTL_0_IRQ:
+	case DT_CAVS_ICTL_0_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_0_NAME);
 		break;
-	case CAVS_ICTL_1_IRQ:
+	case DT_CAVS_ICTL_1_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_1_NAME);
 		break;
-	case CAVS_ICTL_2_IRQ:
+	case DT_CAVS_ICTL_2_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_2_NAME);
 		break;
-	case CAVS_ICTL_3_IRQ:
+	case DT_CAVS_ICTL_3_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_3_NAME);
 		break;
 	default:
@@ -82,16 +83,16 @@ void _soc_irq_disable(u32_t irq)
 	struct device *dev_cavs, *dev_ictl;
 
 	switch (XTENSA_IRQ_NUMBER(irq)) {
-	case CAVS_ICTL_0_IRQ:
+	case DT_CAVS_ICTL_0_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_0_NAME);
 		break;
-	case CAVS_ICTL_1_IRQ:
+	case DT_CAVS_ICTL_1_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_1_NAME);
 		break;
-	case CAVS_ICTL_2_IRQ:
+	case DT_CAVS_ICTL_2_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_2_NAME);
 		break;
-	case CAVS_ICTL_3_IRQ:
+	case DT_CAVS_ICTL_3_IRQ:
 		dev_cavs = device_get_binding(CONFIG_CAVS_ICTL_3_NAME);
 		break;
 	default:

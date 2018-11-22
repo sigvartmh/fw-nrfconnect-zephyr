@@ -434,7 +434,7 @@ config POLL
 	bool "Async I/O Framework"
 	help
 	  Asynchronous notification framework. Enable the k_poll() and
-	  k_poll_signal() APIs.  The former can wait on multiple events
+	  k_poll_signal_raise() APIs.  The former can wait on multiple events
 	  concurrently, which can be either directly triggered or triggered by
 	  the availability of some kernel objects (semaphores and fifos).
 
@@ -677,7 +677,7 @@ endmenu
 
 config TICKLESS_IDLE
 	bool "Tickless idle"
-	default y if SYS_POWER_MANAGEMENT
+	default y if SYS_POWER_MANAGEMENT || TICKLESS_CAPABLE
 	help
 	  This option suppresses periodic system clock interrupts whenever the
 	  kernel becomes idle. This permits the system to remain in a power
@@ -696,7 +696,7 @@ config TICKLESS_IDLE_THRESH
 
 config TICKLESS_KERNEL
 	bool "Tickless kernel"
-	default n
+	default y if TICKLESS_CAPABLE
 	help
 	  This option enables a fully event driven kernel. Periodic system
 	  clock interrupt generation would be stopped at all times. This option

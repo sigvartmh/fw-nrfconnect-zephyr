@@ -576,7 +576,6 @@ struct k_thread {
 
 typedef struct k_thread _thread_t;
 typedef struct k_thread *k_tid_t;
-#define tcs k_thread
 
 enum execution_context_types {
 	K_ISR = 0,
@@ -787,9 +786,11 @@ void k_thread_system_pool_assign(struct k_thread *thread);
  *
  * @param duration Number of milliseconds to sleep.
  *
- * @return N/A
+ * @return Zero if the requested time has elapsed or the number of milliseconds
+ * left to sleep, if thread was woken up by \ref k_wakeup call.
+ *
  */
-__syscall void k_sleep(s32_t duration);
+__syscall s32_t k_sleep(s32_t duration);
 
 /**
  * @brief Cause the current thread to busy wait.
@@ -799,7 +800,7 @@ __syscall void k_sleep(s32_t duration);
  *
  * @return N/A
  */
-extern void k_busy_wait(u32_t usec_to_wait);
+__syscall void k_busy_wait(u32_t usec_to_wait);
 
 /**
  * @brief Yield the current thread.
@@ -1753,7 +1754,7 @@ extern void k_queue_append(struct k_queue *queue, void *data);
  * @retval 0 on success
  * @retval -ENOMEM if there isn't sufficient RAM in the caller's resource pool
  */
-__syscall int k_queue_alloc_append(struct k_queue *queue, void *data);
+__syscall s32_t k_queue_alloc_append(struct k_queue *queue, void *data);
 
 /**
  * @brief Prepend an element to a queue.
@@ -1786,7 +1787,7 @@ extern void k_queue_prepend(struct k_queue *queue, void *data);
  * @retval 0 on success
  * @retval -ENOMEM if there isn't sufficient RAM in the caller's resource pool
  */
-__syscall int k_queue_alloc_prepend(struct k_queue *queue, void *data);
+__syscall s32_t k_queue_alloc_prepend(struct k_queue *queue, void *data);
 
 /**
  * @brief Inserts an element to a queue.
@@ -3327,6 +3328,23 @@ __syscall int k_msgq_put(struct k_msgq *q, void *data, s32_t timeout);
 __syscall int k_msgq_get(struct k_msgq *q, void *data, s32_t timeout);
 
 /**
+ * @brief Peek/read a message from a message queue.
+ *
+ * This routine reads a message from message queue @a q in a "first in,
+ * first out" manner and leaves the message in the queue.
+ *
+ * @note Can be called by ISRs.
+ *
+ * @param q Address of the message queue.
+ * @param data Address of area to hold the message read from the queue.
+ *
+ * @retval 0 Message read.
+ * @retval -ENOMSG Returned when the queue has no message.
+ * @req K-MSGQ-002
+ */
+__syscall int k_msgq_peek(struct k_msgq *q, void *data);
+
+/**
  * @brief Purge a message queue.
  *
  * This routine discards all unreceived messages in a message queue's ring
@@ -4140,7 +4158,7 @@ enum _poll_types_bits {
 	/* can be used to ignore an event */
 	_POLL_TYPE_IGNORE,
 
-	/* to be signaled by k_poll_signal() */
+	/* to be signaled by k_poll_signal_raise() */
 	_POLL_TYPE_SIGNAL,
 
 	/* semaphore availability */
@@ -4159,7 +4177,7 @@ enum _poll_states_bits {
 	/* default state when creating event */
 	_POLL_STATE_NOT_READY,
 
-	/* signaled by k_poll_signal() */
+	/* signaled by k_poll_signal_raise() */
 	_POLL_STATE_SIGNALED,
 
 	/* semaphore is available */
@@ -4229,7 +4247,7 @@ struct k_poll_signal {
 	 */
 	unsigned int signaled;
 
-	/* custom result value passed to k_poll_signal() if needed */
+	/* custom result value passed to k_poll_signal_raise() if needed */
 	int result;
 };
 
@@ -4364,7 +4382,7 @@ __syscall int k_poll(struct k_poll_event *events, int num_events,
 /**
  * @brief Initialize a poll signal object.
  *
- * Ready a poll signal object to be signaled via k_poll_signal().
+ * Ready a poll signal object to be signaled via k_poll_signal_raise().
  *
  * @param signal A poll signal.
  *
@@ -4409,7 +4427,7 @@ __syscall void k_poll_signal_check(struct k_poll_signal *signal,
  * made ready to run. A @a result value can be specified.
  *
  * The poll signal contains a 'signaled' field that, when set by
- * k_poll_signal(), stays set until the user sets it back to 0 with
+ * k_poll_signal_raise(), stays set until the user sets it back to 0 with
  * k_poll_signal_reset(). It thus has to be reset by the user before being
  * passed again to k_poll() or k_poll() will consider it being signaled, and
  * will return immediately.
@@ -4422,7 +4440,7 @@ __syscall void k_poll_signal_check(struct k_poll_signal *signal,
  * @req K-POLL-001
  */
 
-__syscall int k_poll_signal(struct k_poll_signal *signal, int result);
+__syscall int k_poll_signal_raise(struct k_poll_signal *signal, int result);
 
 /**
  * @internal
@@ -4845,61 +4863,6 @@ extern void _arch_start_cpu(int cpu_num, k_thread_stack_t *stack, int sz,
 #ifdef __cplusplus
 }
 #endif
-
-#if defined(CONFIG_CPLUSPLUS) && defined(__cplusplus)
-/*
- * Define new and delete operators.
- * At this moment, the operators do nothing since objects are supposed
- * to be statically allocated.
- */
-inline void operator delete(void *ptr)
-{
-	(void)ptr;
-}
-
-inline void operator delete[](void *ptr)
-{
-	(void)ptr;
-}
-
-inline void *operator new(size_t size)
-{
-	(void)size;
-	return NULL;
-}
-
-inline void *operator new[](size_t size)
-{
-	(void)size;
-	return NULL;
-}
-
-/* Placement versions of operator new and delete */
-inline void operator delete(void *ptr1, void *ptr2)
-{
-	(void)ptr1;
-	(void)ptr2;
-}
-
-inline void operator delete[](void *ptr1, void *ptr2)
-{
-	(void)ptr1;
-	(void)ptr2;
-}
-
-inline void *operator new(size_t size, void *ptr)
-{
-	(void)size;
-	return ptr;
-}
-
-inline void *operator new[](size_t size, void *ptr)
-{
-	(void)size;
-	return ptr;
-}
-
-#endif /* defined(CONFIG_CPLUSPLUS) && defined(__cplusplus) */
 
 #include <tracing.h>
 #include <syscalls/kernel.h>

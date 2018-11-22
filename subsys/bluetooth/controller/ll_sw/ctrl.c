@@ -11,6 +11,7 @@
 
 #include <soc.h>
 #include <device.h>
+#include <entropy.h>
 #include <clock_control.h>
 #include <bluetooth/hci.h>
 #include <misc/util.h>
@@ -19,7 +20,6 @@
 
 #if defined(CONFIG_SOC_COMPATIBLE_NRF)
 #include <drivers/clock_control/nrf5_clock_control.h>
-#include <drivers/entropy/nrf5_entropy.h>
 #endif /* CONFIG_SOC_COMPATIBLE_NRF */
 
 #include "hal/cpu.h"
@@ -162,8 +162,6 @@ static struct {
 
 	u32_t ticks_anchor;
 	u32_t remainder_anchor;
-
-	u8_t  is_k32src_stable;
 
 	u8_t  volatile ticker_id_prepare;
 	u8_t  volatile ticker_id_event;
@@ -3925,9 +3923,9 @@ static inline u32_t isr_close_adv(void)
 			u32_t ticker_status;
 			u16_t random_delay;
 
-			entropy_nrf_get_entropy_isr(_radio.entropy,
-						    (void *)&random_delay,
-						    sizeof(random_delay));
+			entropy_get_entropy_isr(_radio.entropy,
+						(void *)&random_delay,
+						sizeof(random_delay), 0);
 
 			random_delay %= HAL_TICKER_US_TO_TICKS(10000);
 			random_delay += 1;
@@ -4648,27 +4646,26 @@ static void mayfly_xtal_stop(void *params)
 	DEBUG_RADIO_CLOSE(0);
 }
 
-#define DRV_NAME CONFIG_CLOCK_CONTROL_NRF5_K32SRC_DRV_NAME
-#define K32SRC   CLOCK_CONTROL_NRF5_K32SRC
 static void k32src_wait(void)
 {
-	if (!_radio.is_k32src_stable) {
-		struct device *clk_k32;
+	static bool done;
 
-		_radio.is_k32src_stable = 1;
+	if (done) {
+		return;
+	}
+	done = true;
 
-		clk_k32 = device_get_binding(DRV_NAME);
-		LL_ASSERT(clk_k32);
+	struct device *lf_clock = device_get_binding(
+		CONFIG_CLOCK_CONTROL_NRF5_K32SRC_DRV_NAME);
 
-		while (clock_control_on(clk_k32, (void *)K32SRC)) {
-			DEBUG_CPU_SLEEP(1);
-			cpu_sleep();
-			DEBUG_CPU_SLEEP(0);
-		}
+	LL_ASSERT(lf_clock);
+
+	while (clock_control_on(lf_clock, (void *)CLOCK_CONTROL_NRF5_K32SRC)) {
+		DEBUG_CPU_SLEEP(1);
+		cpu_sleep();
+		DEBUG_CPU_SLEEP(0);
 	}
 }
-#undef K32SRC
-#undef DRV_NAME
 
 #if defined(CONFIG_BT_CTLR_XTAL_ADVANCED)
 #define XON_BITMASK BIT(31) /* XTAL has been retained from previous prepare */
@@ -4897,9 +4894,15 @@ static void mayfly_xtal_stop_calc(void *params)
 
 	/* Compensate for next ticker in reduced prepare */
 	if (hdr_next->ticks_xtal_to_start & XON_BITMASK) {
-		ticks_to_expire -=
-			(hdr_next->ticks_xtal_to_start &
-			 ~XON_BITMASK) - ticks_prepare_to_start_next;
+		u32_t ticks_reduced = (hdr_next->ticks_xtal_to_start &
+				       ~XON_BITMASK) -
+				      ticks_prepare_to_start_next;
+
+		if (ticks_to_expire > ticks_reduced) {
+			ticks_to_expire -= ticks_reduced;
+		} else {
+			ticks_to_expire = 0;
+		}
 	}
 
 	/* If beyond the xtal threshold reset to normal the next prepare,
@@ -7164,6 +7167,42 @@ static inline void event_fex_prep(struct connection *conn)
 {
 	struct radio_pdu_node_tx *node_tx;
 
+	if (conn->common.fex_valid) {
+		struct radio_pdu_node_rx *node_rx;
+		struct pdu_data *pdu_ctrl_rx;
+
+		/* procedure request acked */
+		conn->llcp_ack = conn->llcp_req;
+
+		/* Prepare the rx packet structure */
+		node_rx = packet_rx_reserve_get(2);
+		LL_ASSERT(node_rx);
+
+		node_rx->hdr.handle = conn->handle;
+		node_rx->hdr.type = NODE_RX_TYPE_DC_PDU;
+
+		/* prepare feature rsp structure */
+		pdu_ctrl_rx = (void *)node_rx->pdu_data;
+		pdu_ctrl_rx->ll_id = PDU_DATA_LLID_CTRL;
+		pdu_ctrl_rx->len = offsetof(struct pdu_data_llctrl,
+					    feature_rsp) +
+				   sizeof(struct pdu_data_llctrl_feature_rsp);
+		pdu_ctrl_rx->llctrl.opcode = PDU_DATA_LLCTRL_TYPE_FEATURE_RSP;
+		(void)memset(&pdu_ctrl_rx->llctrl.feature_rsp.features[0], 0x00,
+			     sizeof(pdu_ctrl_rx->llctrl.feature_rsp.features));
+		pdu_ctrl_rx->llctrl.feature_req.features[0] =
+			conn->llcp_features & 0xFF;
+		pdu_ctrl_rx->llctrl.feature_req.features[1] =
+			(conn->llcp_features >> 8) & 0xFF;
+		pdu_ctrl_rx->llctrl.feature_req.features[2] =
+			(conn->llcp_features >> 16) & 0xFF;
+
+		/* enqueue feature rsp structure into rx queue */
+		packet_rx_enqueue();
+
+		return;
+	}
+
 	node_tx = mem_acquire(&_radio.pkt_tx_ctrl_free);
 	if (node_tx) {
 		struct pdu_data *pdu_ctrl_tx = (void *)node_tx->pdu_data;
@@ -9398,11 +9437,21 @@ static void enc_req_reused_send(struct connection *conn,
 		conn->llcp.encryption.ediv[0];
 	pdu_ctrl_tx->llctrl.enc_req.ediv[1] =
 		conn->llcp.encryption.ediv[1];
+
+	/*
+	 * Take advantage of the fact that ivm and skdm fields, which both have
+	 * to be filled with random data, are adjacent and use single call to
+	 * the entropy driver.
+	 */
+	BUILD_ASSERT(offsetof(__typeof(pdu_ctrl_tx->llctrl.enc_req), ivm) ==
+		     (offsetof(__typeof(pdu_ctrl_tx->llctrl.enc_req), skdm) +
+		     sizeof(pdu_ctrl_tx->llctrl.enc_req.skdm)));
+
 	/* NOTE: if not sufficient random numbers, ignore waiting */
-	entropy_nrf_get_entropy_isr(_radio.entropy, pdu_ctrl_tx->llctrl.enc_req.skdm,
-				    sizeof(pdu_ctrl_tx->llctrl.enc_req.skdm));
-	entropy_nrf_get_entropy_isr(_radio.entropy, pdu_ctrl_tx->llctrl.enc_req.ivm,
-				    sizeof(pdu_ctrl_tx->llctrl.enc_req.ivm));
+	entropy_get_entropy_isr(_radio.entropy,
+				pdu_ctrl_tx->llctrl.enc_req.skdm,
+				sizeof(pdu_ctrl_tx->llctrl.enc_req.skdm) +
+				sizeof(pdu_ctrl_tx->llctrl.enc_req.ivm), 0);
 }
 
 static u8_t enc_rsp_send(struct connection *conn)
@@ -9421,11 +9470,21 @@ static u8_t enc_rsp_send(struct connection *conn)
 	pdu_ctrl_tx->len = offsetof(struct pdu_data_llctrl, enc_rsp) +
 			   sizeof(struct pdu_data_llctrl_enc_rsp);
 	pdu_ctrl_tx->llctrl.opcode = PDU_DATA_LLCTRL_TYPE_ENC_RSP;
+
+	/*
+	 * Take advantage of the fact that ivs and skds fields, which both have
+	 * to be filled with random data, are adjacent and use single call to
+	 * the entropy driver.
+	 */
+	BUILD_ASSERT(offsetof(__typeof(pdu_ctrl_tx->llctrl.enc_rsp), ivs) ==
+		     (offsetof(__typeof(pdu_ctrl_tx->llctrl.enc_rsp), skds) +
+		     sizeof(pdu_ctrl_tx->llctrl.enc_rsp.skds)));
+
 	/* NOTE: if not sufficient random numbers, ignore waiting */
-	entropy_nrf_get_entropy_isr(_radio.entropy, pdu_ctrl_tx->llctrl.enc_rsp.skds,
-				    sizeof(pdu_ctrl_tx->llctrl.enc_rsp.skds));
-	entropy_nrf_get_entropy_isr(_radio.entropy, pdu_ctrl_tx->llctrl.enc_rsp.ivs,
-				    sizeof(pdu_ctrl_tx->llctrl.enc_rsp.ivs));
+	entropy_get_entropy_isr(_radio.entropy,
+				pdu_ctrl_tx->llctrl.enc_rsp.skds,
+				sizeof(pdu_ctrl_tx->llctrl.enc_rsp.skds) +
+				sizeof(pdu_ctrl_tx->llctrl.enc_rsp.ivs), 0);
 
 	/* things from slave stored for session key calculation */
 	memcpy(&conn->llcp.encryption.skd[8],
@@ -10481,9 +10540,13 @@ u32_t radio_scan_enable(u8_t type, u8_t init_addr_type, u8_t *init_addr,
 	return 0;
 }
 
-u32_t radio_scan_disable(void)
+u32_t radio_scan_disable(bool scanner)
 {
 	u32_t status;
+
+	if (scanner && _radio.scanner.conn) {
+		return BT_HCI_ERR_CMD_DISALLOWED;
+	}
 
 	status = role_disable(RADIO_TICKER_ID_SCAN,
 			      RADIO_TICKER_ID_SCAN_STOP);
@@ -10495,7 +10558,7 @@ u32_t radio_scan_disable(void)
 		}
 	}
 
-	return status ? BT_HCI_ERR_CMD_DISALLOWED : 0;
+	return _radio.scanner.is_enabled ? BT_HCI_ERR_CMD_DISALLOWED : 0;
 }
 
 u32_t ll_scan_is_enabled(void)
@@ -10686,7 +10749,7 @@ u32_t ll_connect_disable(void **node_rx)
 		return BT_HCI_ERR_CMD_DISALLOWED;
 	}
 
-	status = radio_scan_disable();
+	status = radio_scan_disable(false);
 	if (!status) {
 		struct connection *conn = _radio.scanner.conn;
 		struct radio_pdu_node_rx *rx;
@@ -10705,8 +10768,8 @@ u32_t ll_connect_disable(void **node_rx)
 	return status;
 }
 
-u32_t ll_conn_update(u16_t handle, u8_t cmd, u8_t status, u16_t interval,
-		     u16_t latency, u16_t timeout)
+u32_t ll_conn_update(u16_t handle, u8_t cmd, u8_t status, u16_t interval_min,
+		     u16_t interval_max, u16_t latency, u16_t timeout)
 {
 	struct connection *conn;
 
@@ -10739,7 +10802,7 @@ u32_t ll_conn_update(u16_t handle, u8_t cmd, u8_t status, u16_t interval,
 
 		conn->llcp.conn_upd.win_size = 1;
 		conn->llcp.conn_upd.win_offset_us = 0;
-		conn->llcp.conn_upd.interval = interval;
+		conn->llcp.conn_upd.interval = interval_max;
 		conn->llcp.conn_upd.latency = latency;
 		conn->llcp.conn_upd.timeout = timeout;
 		/* conn->llcp.conn_upd.instant     = 0; */
@@ -10770,8 +10833,8 @@ u32_t ll_conn_update(u16_t handle, u8_t cmd, u8_t status, u16_t interval,
 			}
 
 			conn->llcp_conn_param.status = 0;
-			conn->llcp_conn_param.interval_min = interval;
-			conn->llcp_conn_param.interval_max = interval;
+			conn->llcp_conn_param.interval_min = interval_min;
+			conn->llcp_conn_param.interval_max = interval_max;
 			conn->llcp_conn_param.latency = latency;
 			conn->llcp_conn_param.timeout = timeout;
 			conn->llcp_conn_param.state = cmd;

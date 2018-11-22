@@ -153,6 +153,17 @@ void notify_le_param_updated(struct bt_conn *conn)
 {
 	struct bt_conn_cb *cb;
 
+	/* If new connection parameters meet requirement of pending
+	 * parameters don't send slave conn param request anymore on timeout
+	 */
+	if (atomic_test_bit(conn->flags, BT_CONN_SLAVE_PARAM_SET) &&
+	    conn->le.interval >= conn->le.interval_min &&
+	    conn->le.interval <= conn->le.interval_max &&
+	    conn->le.latency == conn->le.pending_latency &&
+	    conn->le.timeout == conn->le.pending_timeout) {
+		atomic_clear_bit(conn->flags, BT_CONN_SLAVE_PARAM_SET);
+	}
+
 	for (cb = callback_list; cb; cb = cb->_next) {
 		if (cb->le_param_updated) {
 			cb->le_param_updated(conn, conn->le.interval,
@@ -202,9 +213,20 @@ static int send_conn_le_param_update(struct bt_conn *conn,
 	 * it; or if local role is master then use LE connection update.
 	 */
 	if ((BT_FEAT_LE_CONN_PARAM_REQ_PROC(bt_dev.le.features) &&
-	     BT_FEAT_LE_CONN_PARAM_REQ_PROC(conn->le.features)) ||
-	    (conn->role == BT_HCI_ROLE_MASTER)) {
-		return bt_conn_le_conn_update(conn, param);
+	     BT_FEAT_LE_CONN_PARAM_REQ_PROC(conn->le.features) &&
+	     !atomic_test_bit(conn->flags, BT_CONN_SLAVE_PARAM_L2CAP)) ||
+	     (conn->role == BT_HCI_ROLE_MASTER)) {
+		int rc;
+
+		rc = bt_conn_le_conn_update(conn, param);
+
+		/* store those in case of fallback to L2CAP */
+		if (rc == 0) {
+			conn->le.pending_latency = param->latency;
+			conn->le.pending_timeout = param->timeout;
+		}
+
+		return rc;
 	}
 
 	/* If remote master does not support LL Connection Parameters Request
@@ -237,8 +259,8 @@ static void conn_le_update_timeout(struct k_work *work)
 	if (atomic_test_and_clear_bit(conn->flags, BT_CONN_SLAVE_PARAM_SET)) {
 		param = BT_LE_CONN_PARAM(conn->le.interval_min,
 					 conn->le.interval_max,
-					 conn->le.latency,
-					 conn->le.timeout);
+					 conn->le.pending_latency,
+					 conn->le.pending_timeout);
 
 		send_conn_le_param_update(conn, param);
 	} else {
@@ -1507,7 +1529,7 @@ void bt_conn_set_state(struct bt_conn *conn, bt_conn_state_t state)
 		}
 		k_fifo_init(&conn->tx_queue);
 		k_fifo_init(&conn->tx_notify);
-		k_poll_signal(&conn_change, 0);
+		k_poll_signal_raise(&conn_change, 0);
 
 		sys_slist_init(&conn->channels);
 
@@ -1536,7 +1558,7 @@ void bt_conn_set_state(struct bt_conn *conn, bt_conn_state_t state)
 			}
 
 			atomic_set_bit(conn->flags, BT_CONN_CLEANUP);
-			k_poll_signal(&conn_change, 0);
+			k_poll_signal_raise(&conn_change, 0);
 			/* The last ref will be dropped by the tx_thread */
 		} else if (old_state == BT_CONN_CONNECT) {
 			/* conn->err will be set in this case */
@@ -1800,6 +1822,7 @@ int bt_conn_le_param_update(struct bt_conn *conn,
 	    conn->le.interval <= param->interval_max &&
 	    conn->le.latency == param->latency &&
 	    conn->le.timeout == param->timeout) {
+		atomic_clear_bit(conn->flags, BT_CONN_SLAVE_PARAM_SET);
 		return -EALREADY;
 	}
 
@@ -1814,13 +1837,11 @@ int bt_conn_le_param_update(struct bt_conn *conn,
 			return send_conn_le_param_update(conn, param);
 		}
 
-		/* store new conn params to be used by update timer
-		 * TODO this overwrites current latency and timeout
-		 */
+		/* store new conn params to be used by update timer */
 		conn->le.interval_min = param->interval_min;
 		conn->le.interval_max = param->interval_max;
-		conn->le.latency = param->latency;
-		conn->le.timeout = param->timeout;
+		conn->le.pending_latency = param->latency;
+		conn->le.pending_timeout = param->timeout;
 		atomic_set_bit(conn->flags, BT_CONN_SLAVE_PARAM_SET);
 	}
 

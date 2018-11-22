@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #include <kernel.h>
-#include <board.h>
+#include <soc.h>
 #include <init.h>
 #include <sys_io.h>
 #include <misc/util.h>
@@ -19,7 +19,7 @@
 
 #define LOG_LEVEL CONFIG_GPIO_LOG_LEVEL
 #include <logging/log.h>
-LOG_MODULE_REGISTER(gpio_sch)
+LOG_MODULE_REGISTER(gpio_sch);
 
 /* Define GPIO_SCH_LEGACY_IO_PORTS_ACCESS
  * inside soc.h if the GPIO controller

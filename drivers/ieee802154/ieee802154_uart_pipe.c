@@ -5,7 +5,7 @@
  */
 
 #define LOG_MODULE_NAME ieee802154_uart_pipe
-#define LOG_LEVEL CONFIG_IEEE802154_LOG_LEVEL
+#define LOG_LEVEL CONFIG_IEEE802154_DRIVER_LOG_LEVEL
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
@@ -15,7 +15,6 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 #include <kernel.h>
 #include <arch/cpu.h>
 
-#include <board.h>
 #include <device.h>
 #include <init.h>
 #include <net/net_if.h>

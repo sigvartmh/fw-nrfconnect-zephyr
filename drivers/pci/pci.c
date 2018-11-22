@@ -41,8 +41,10 @@
  * pci_bus_scan_init();
  *
  * while (pci_bus_scan(&info)) {
- *      // do something with "info" which holds a valid result, i.e. some
- *      // device information matching the PCI class PCI_CLASS_COMM_CTLR
+ *      ...
+ *      do something with "info" which holds a valid result, i.e. some
+ *      device information matching the PCI class PCI_CLASS_COMM_CTLR
+ *      ...
  * }
  *
  * INTERNALS
@@ -75,7 +77,7 @@
 #include <toolchain.h>
 #include <linker/sections.h>
 
-#include <board.h>
+#include <soc.h>
 
 #include <pci/pci_mgr.h>
 #include <pci/pci.h>

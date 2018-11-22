@@ -176,11 +176,13 @@ def extract_controller(node_address, yaml, prop, prop_values, index, def_label, 
 
         #generate defs also if node is referenced as an alias in dts
         if node_address in aliases:
-            for i in aliases[node_address]:
-                alias_label = \
-                    convert_string_to_label(i)
-                alias = [alias_label] + label[1:]
-                prop_alias['_'.join(alias)] = '_'.join(label)
+            add_prop_aliases(
+                node_address,
+                yaml,
+                lambda alias:
+                    '_'.join([convert_string_to_label(alias)] + label[1:]),
+                '_'.join(label),
+                prop_alias)
 
         insert_defs(node_address, prop_def, prop_alias)
 
@@ -208,12 +210,16 @@ def extract_cells(node_address, yaml, prop, prop_values, names, index,
     try:
         name = names.pop(0).upper()
     except:
-        name = []
+        name = ''
 
     # Get number of cells per element of current property
     for k in reduced[cell_parent]['props'].keys():
         if k[0] == '#' and '-cells' in k:
             num_cells = reduced[cell_parent]['props'].get(k)
+            if k in cell_yaml.keys():
+                cell_yaml_names = k
+            else:
+                cell_yaml_names = '#cells'
     try:
         generation = yaml[get_compat(node_address)]['properties'][prop][
             'generation']
@@ -239,22 +245,25 @@ def extract_cells(node_address, yaml, prop, prop_values, names, index,
 
     # Generate label for each field of the property element
     for i in range(num_cells):
-        l_cellname = [str(cell_yaml['#cells'][i]).upper()]
+        l_cellname = [str(cell_yaml[cell_yaml_names][i]).upper()]
         if l_cell == l_cellname:
             label = l_base + l_cell + l_idx
         else:
             label = l_base + l_cell + l_cellname + l_idx
-        label_name = l_base + name + l_cellname
+        label_name = l_base + [name] + l_cellname
         prop_def['_'.join(label)] = prop_values.pop(0)
         if len(name):
             prop_alias['_'.join(label_name)] = '_'.join(label)
 
         # generate defs for node aliases
         if node_address in aliases:
-            for i in aliases[node_address]:
-                alias_label = convert_string_to_label(i)
-                alias = [alias_label] + label[1:]
-                prop_alias['_'.join(alias)] = '_'.join(label)
+            add_prop_aliases(
+                node_address,
+                yaml,
+                lambda alias:
+                    '_'.join([convert_string_to_label(alias)] + label[1:]),
+                '_'.join(label),
+                prop_alias)
 
         insert_defs(node_address, prop_def, prop_alias)
 
@@ -289,10 +298,13 @@ def extract_single(node_address, yaml, prop, key, def_label):
 
         # generate defs for node aliases
         if node_address in aliases:
-            for i in aliases[node_address]:
-                alias_label = convert_string_to_label(i)
-                alias = alias_label + '_' + k
-                prop_alias[alias] = label
+            add_prop_aliases(
+                node_address,
+                yaml,
+                lambda alias:
+                    convert_string_to_label(alias) + '_' + k,
+                label,
+                prop_alias)
 
     insert_defs(node_address, prop_def, prop_alias)
 
@@ -315,13 +327,6 @@ def extract_string_prop(node_address, yaml, key, label):
 def extract_property(node_compat, yaml, node_address, prop, prop_val, names):
 
     node = reduced[node_address]
-    label_override = None
-    if yaml[node_compat].get('use-property-label', False):
-        try:
-            label_override = convert_string_to_label(node['props']['label'])
-        except KeyError:
-            pass
-
     if 'base_label' in yaml[node_compat]:
         def_label = yaml[node_compat].get('base_label')
     else:
@@ -334,8 +339,8 @@ def extract_property(node_compat, yaml, node_address, prop, prop_val, names):
 
             #check parent has matching child bus value
             try:
-                parent_yaml = \
-                    yaml[reduced[parent_address]['props']['compatible']]
+                parent_compat = get_compat(parent_address)
+                parent_yaml = yaml[parent_compat]
                 parent_bus = parent_yaml['child']['bus']
             except (KeyError, TypeError) as e:
                 raise Exception(str(node_address) + " defines parent " +
@@ -368,17 +373,13 @@ def extract_property(node_compat, yaml, node_address, prop, prop_val, names):
 
             # Generate bus-name define
             extract_single(node_address, yaml, 'parent-label',
-                           'bus-name', def_label)
+                           'bus-name', 'DT_' + def_label)
 
-    if label_override is not None:
-        def_label += '_' + label_override
+    if 'base_label' not in yaml[node_compat]:
+        def_label = 'DT_' + def_label
 
     if prop == 'reg':
-        if 'partition@' in node_address:
-            # reg in partition is covered by flash handling
-            flash.extract(node_address, yaml, prop, def_label)
-        else:
-            reg.extract(node_address, yaml, names, def_label, 1)
+        reg.extract(node_address, yaml, names, def_label, 1)
     elif prop == 'interrupts' or prop == 'interrupts-extended':
         interrupts.extract(node_address, yaml, prop, names, def_label)
     elif prop == 'compatible':
@@ -387,16 +388,24 @@ def extract_property(node_compat, yaml, node_address, prop, prop_val, names):
         pinctrl.extract(node_address, yaml, prop, def_label)
     elif 'clocks' in prop:
         clocks.extract(node_address, yaml, prop, def_label)
-    elif 'gpios' in prop:
+    elif 'pwms' in prop or 'gpios' in prop:
+        # drop the 's' from the prop
+        generic = prop[:-1]
         try:
             prop_values = list(reduced[node_address]['props'].get(prop))
         except:
             prop_values = reduced[node_address]['props'].get(prop)
 
+        # Newer versions of dtc might have the property look like
+        # cs-gpios = <0x05 0x0d 0x00>, < 0x06 0x00 0x00>;
+        # So we need to flatten the list in that case
+        if isinstance(prop_values[0], list):
+            prop_values = [item for sublist in prop_values for item in sublist]
+
         extract_controller(node_address, yaml, prop, prop_values, 0,
-                           def_label, 'gpio')
+                           def_label, generic)
         extract_cells(node_address, yaml, prop, prop_values,
-                      names, 0, def_label, 'gpio')
+                      names, 0, def_label, generic)
     else:
         default.extract(node_address, yaml, prop, prop_val['type'], def_label)
 
@@ -429,6 +438,17 @@ def extract_node_include_info(reduced, root_node_address, sub_node_address,
             if 'generation' in v:
 
                 match = False
+
+                # Handle any per node extraction first.  For example we
+                # extract a few different defines for a flash partition so its
+                # easier to handle the partition node in one step
+                if 'partition@' in sub_node_address:
+                    flash.extract_partition(sub_node_address)
+                    continue
+
+                # Handle each property individually, this ends up handling common
+                # patterns for things like reg, interrupts, etc that we don't need
+                # any special case handling at a node level
                 for c in node['props'].keys():
                     # if prop is in filter list - ignore it
                     if c in filter_list:
@@ -706,11 +726,15 @@ def parse_arguments():
                         help="Generate include file for the build system")
     parser.add_argument("-k", "--keyvalue", nargs=1, required=True,
                         help="Generate config file for the build system")
+    parser.add_argument("--old-alias-names", action='store_true',
+                        help="Generate aliases also in the old way, without "
+                             "compatibility information in their labels")
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
+    enable_old_alias_names(args.old_alias_names)
 
     dts = load_and_parse_dts(args.dts[0])
 

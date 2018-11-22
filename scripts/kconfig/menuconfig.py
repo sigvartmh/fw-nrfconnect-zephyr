@@ -1000,7 +1000,7 @@ def _prefer_toggle(item):
            (isinstance(item, Choice) and len(item.assignable) > 1)
 
 def _enter_menu(menu):
-    # Makes 'menu' the currently displayed menu
+    # Makes 'menu' the currently displayed menu. "Menu" here includes choices.
 
     global _cur_menu
     global _shown
@@ -1018,6 +1018,25 @@ def _enter_menu(menu):
         _cur_menu = menu
         _shown = shown_sub
         _sel_node_i = _menu_scroll = 0
+
+        if isinstance(menu.item, Choice):
+            _select_selected_choice_sym()
+
+def _select_selected_choice_sym():
+    # Puts the cursor on the currently selected (y-valued) choice symbol, if
+    # any. Does nothing if if the choice has no selection (is not visible/in y
+    # mode).
+
+    global _sel_node_i
+
+    choice = _cur_menu.item
+    if choice.selection:
+        # Search through all menu nodes to handle choice symbols being defined
+        # in multiple locations
+        for node in choice.selection.nodes:
+            if node in _shown:
+                _sel_node_i = _shown.index(node)
+                _center_vertically()
 
 def _jump_to(node):
     # Jumps directly to the menu node 'node'
@@ -1061,6 +1080,11 @@ def _jump_to(node):
         _toggle_show_all()
 
     _center_vertically()
+
+    # If we're jumping to a non-empty choice, jump to the selected symbol, if
+    # any
+    if jump_into and isinstance(_cur_menu.item, Choice):
+        _select_selected_choice_sym()
 
 def _leave_menu():
     # Jumps to the parent menu of the current menu. Does nothing if we're in
@@ -1107,9 +1131,10 @@ def _select_next_menu_entry():
         # (as determined by _SCROLL_OFFSET), increase the scroll by one. This
         # gives nice and non-jumpy behavior even when
         # _SCROLL_OFFSET >= _menu_win_height().
-        if _sel_node_i >= _menu_scroll + _menu_win_height() - _SCROLL_OFFSET:
-            _menu_scroll = min(_menu_scroll + 1,
-                               _max_scroll(_shown, _menu_win))
+        if _sel_node_i >= _menu_scroll + _menu_win_height() - _SCROLL_OFFSET \
+           and _menu_scroll < _max_scroll(_shown, _menu_win):
+
+            _menu_scroll += 1
 
 def _select_prev_menu_entry():
     # Selects the menu entry before the current one, adjusting the scroll if
@@ -1196,7 +1221,8 @@ def _center_vertically():
 
     global _menu_scroll
 
-    _menu_scroll = max(_sel_node_i - _menu_win_height()//2, 0)
+    _menu_scroll = min(max(_sel_node_i - _menu_win_height()//2, 0),
+                       _max_scroll(_shown, _menu_win))
 
 def _draw_main():
     # Draws the "main" display, with the list of symbols, the header, and the
@@ -1360,13 +1386,12 @@ def _shown_nodes(menu):
                 rec(node.list) if node.list and not node.is_menuconfig else []
 
             # Always show the node if it is the root of an implicit submenu
-            # with visible items, even when the node itself is invisible. This
+            # with visible items, even if the node itself is invisible. This
             # can happen e.g. if the symbol has an optional prompt
             # ('prompt "foo" if COND') that is currently invisible.
             if shown(node) or shown_children:
                 res.append(node)
-
-            res.extend(shown_children)
+                res += shown_children
 
             node = node.next
 
@@ -1446,7 +1471,7 @@ def _change_node(node):
         # case: .assignable can be (2,) while .tri_value is 0.
         _set_val(sc, sc.assignable[0])
 
-    else:
+    elif sc.assignable:
         # Set the symbol to the value after the current value in
         # sc.assignable, with wrapping
         val_index = sc.assignable.index(sc.tri_value)
@@ -1646,22 +1671,12 @@ def _try_load(filename):
     # filename:
     #   Configuration file to load
 
-    # Hack: strerror and errno are lost after we raise the custom IOError with
-    # troubleshooting help in Kconfig.load_config(). Adding them back to the
-    # exception loses the custom message. As a workaround, try opening the file
-    # separately first and report any errors.
-    try:
-        open(filename).close()
-    except OSError as e:
-        _error("Error loading {}\n\n{} (errno: {})"
-               .format(filename, e.strerror, errno.errorcode[e.errno]))
-        return False
-
     try:
         _kconf.load_config(filename)
         return True
     except OSError as e:
-        _error("Error loading {}\n\nUnknown error".format(filename))
+        _error("Error loading '{}'\n\n{} (errno: {})"
+               .format(filename, e.strerror, errno.errorcode[e.errno]))
         return False
 
 def _save_dialog(save_fn, default_filename, description):
@@ -1854,8 +1869,10 @@ def _jump_to_dialog():
         if sel_node_i < len(matches) - 1:
             sel_node_i += 1
 
-            if sel_node_i >= scroll + matches_win.getmaxyx()[0] - _SCROLL_OFFSET:
-                scroll = min(scroll + 1, _max_scroll(matches, matches_win))
+            if sel_node_i >= scroll + matches_win.getmaxyx()[0] - _SCROLL_OFFSET \
+               and scroll < _max_scroll(matches, matches_win):
+
+                scroll += 1
 
     def select_prev_match():
         nonlocal sel_node_i
@@ -1976,15 +1993,23 @@ def _jump_to_dialog():
         elif c == curses.KEY_UP:
             select_prev_match()
 
-        elif c == curses.KEY_NPAGE:  # Page Down
+        elif c in (curses.KEY_NPAGE, "\x04"):  # Page Down/Ctrl-D
             # Keep it simple. This way we get sane behavior for small windows,
             # etc., for free.
             for _ in range(_PG_JUMP):
                 select_next_match()
 
-        elif c == curses.KEY_PPAGE:  # Page Up
+        # Page Up (no Ctrl-U, as it's already used by the edit box)
+        elif c == curses.KEY_PPAGE:
             for _ in range(_PG_JUMP):
                 select_prev_match()
+
+        elif c == curses.KEY_END:
+            sel_node_i = len(matches) - 1
+            scroll = _max_scroll(matches, matches_win)
+
+        elif c == curses.KEY_HOME:
+            sel_node_i = scroll = 0
 
         else:
             s, s_i, hscroll = _edit_text(c, s, s_i, hscroll,
@@ -2025,8 +2050,8 @@ def _sorted_menu_comment_nodes(cached_nodes=[]):
         def prompt_text(mc):
             return mc.prompt[0]
 
-        cached_nodes += sorted(_kconf.menus, key=prompt_text) + \
-                        sorted(_kconf.comments, key=prompt_text)
+        cached_nodes += sorted(_kconf.menus, key=prompt_text)
+        cached_nodes += sorted(_kconf.comments, key=prompt_text)
 
     return cached_nodes
 
@@ -2140,7 +2165,7 @@ def _draw_jump_to_dialog(edit_box, matches_win, bot_sep_win, help_win,
 
     edit_box.erase()
 
-    _draw_frame(edit_box, "Jump to symbol")
+    _draw_frame(edit_box, "Jump to symbol/choice/menu/comment")
 
     # Draw arrows pointing up if the symbol list is scrolled down
     if scroll > 0:
@@ -2752,8 +2777,10 @@ def _node_str(node):
             sym = node.item
 
             # Print "(NEW)" next to symbols without a user value (from e.g. a
-            # .config), but skip it for choice symbols in choices in y mode
+            # .config), but skip it for choice symbols in choices in y mode,
+            # and for symbols of UNKNOWN type (which generate a warning though)
             if sym.user_value is None and \
+               sym.type != UNKNOWN and \
                not (sym.choice and sym.choice.tri_value == 2):
 
                 s += " (NEW)"

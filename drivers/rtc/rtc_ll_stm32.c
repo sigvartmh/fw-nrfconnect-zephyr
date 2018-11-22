@@ -14,7 +14,7 @@
 #include <clock_control.h>
 #include <misc/util.h>
 #include <kernel.h>
-#include <board.h>
+#include <soc.h>
 #include <rtc.h>
 
 #if defined(CONFIG_SOC_SERIES_STM32L4X)
@@ -302,7 +302,7 @@ DEVICE_AND_API_INIT(rtc_stm32, CONFIG_RTC_0_NAME, &rtc_stm32_init,
 
 static void rtc_stm32_irq_config(struct device *dev)
 {
-	IRQ_CONNECT(CONFIG_RTC_0_IRQ, CONFIG_RTC_0_IRQ_PRI,
+	IRQ_CONNECT(DT_RTC_0_IRQ, CONFIG_RTC_0_IRQ_PRI,
 		    rtc_stm32_isr, DEVICE_GET(rtc_stm32), 0);
-	irq_enable(CONFIG_RTC_0_IRQ);
+	irq_enable(DT_RTC_0_IRQ);
 }
