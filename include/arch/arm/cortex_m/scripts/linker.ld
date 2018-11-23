@@ -70,7 +70,19 @@
 
 MEMORY
     {
+#ifdef LINKER_OUTPUT_NAME_bootloader
+    FLASH                 (rx) : ORIGIN = CONFIG_FLASH_BASE_ADDRESS + FLASH_AREA_SECURE_BOOT_OFFSET_0, LENGTH = FLASH_AREA_SECURE_BOOT_SIZE_0
+    PROVISION             (rx) : ORIGIN = CONFIG_FLASH_BASE_ADDRESS + FLASH_AREA_PROVISION_OFFSET_0, LENGTH = FLASH_AREA_PROVISION_SIZE_0
+#else
+
+#ifdef CONFIG_SECURE_BOOT
+    FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE - FLASH_AREA_PROVISION_SIZE_0
+#else
     FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
+#endif // CONFIG_SECURE_BOOT
+
+#endif // LINKER_OUTPUT_NAME_bootloader
+
 #ifdef CONFIG_TI_CCFG_PRESENT
     FLASH_CCFG            (rwx): ORIGIN = CCFG_ADDR, LENGTH = CCFG_SIZE
 #endif
@@ -83,7 +95,11 @@ MEMORY
     IDT_LIST  (wx)      : ORIGIN = (RAM_ADDR + RAM_SIZE), LENGTH = 2K
     }
 
+#if defined(LINKER_OUTPUT_NAME_bootloader) && defined(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK)
+INCLUDE "nrf_common.ld"
+#else
 ENTRY(CONFIG_KERNEL_ENTRY)
+#endif
 
 SECTIONS
     {
@@ -107,6 +123,14 @@ SECTIONS
     GROUP_START(ROMABLE_REGION)
 
 	_image_rom_start = ROM_ADDR;
+	_used_rom_start = ROM_ADDR;
+
+#ifdef LINKER_OUTPUT_NAME_bootloader
+    provision :
+    {
+        KEEP(*(.PROVISION_DATA))
+    } > PROVISION
+#endif //LINKER_OUTPUT_NAME_bootloader
 
     SECTION_PROLOGUE(_TEXT_SECTION_NAME,,)
 	{
@@ -142,6 +166,12 @@ SECTIONS
 	KEEP(*(".kinetis_flash_config.*"))
 
 	_vector_end = .;
+
+#if !defined(LINKER_OUTPUT_NAME_bootloader) && defined(CONFIG_SB_FIRMWARE_INFO_OFFSET)
+	. = CONFIG_SB_FIRMWARE_INFO_OFFSET;
+	KEEP(*(.firmware_info))
+#endif
+
 	_image_text_start = .;
 	*(.text)
 	*(".text.*")
@@ -472,6 +502,13 @@ SECTIONS
 #ifdef CONFIG_GEN_ISR_TABLES
 #include <linker/intlist.ld>
 #endif
+
+
+    SECTION_PROLOGUE(.dummy,(NOLOAD),)
+        {
+		_used_rom_end  = .;
+		_used_rom_size = _used_rom_end - _used_rom_start;
+        } GROUP_LINK_IN(ROMABLE_REGION)
 
 #include <linker/debug-sections.ld>
 

@@ -754,6 +754,7 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
     ${ZEPHYR_INCLUDES}
     ${LINKER_SCRIPT_DEFINES}
     ${LINKER_PASS_DEFINE}
+    -DLINKER_OUTPUT_NAME_${linker_output_name} # Used to identify custom linker scripts
     -E ${LINKER_SCRIPT}
     -P # Prevent generation of debug `#line' directives.
     -o ${linker_cmd_file_name}
@@ -1246,10 +1247,14 @@ list_append_ifdef(CONFIG_CHECK_LINK_MAP
   COMMAND ${PYTHON_EXECUTABLE} ${ZEPHYR_BASE}/scripts/check_link_map.py ${KERNEL_MAP_NAME}
   )
 
+if (NOT DEFINED CONFIG_SECURE_BOOT)
+  set(GAP_FILL_HEX "--gap-fill 0xFF")
+endif()
+
 list_append_ifdef(
   CONFIG_BUILD_OUTPUT_HEX
   post_build_commands
-  COMMAND ${CMAKE_OBJCOPY} -S -Oihex --gap-fill 0xFF  -R .comment -R COMMON -R .eh_frame  ${KERNEL_ELF_NAME}    ${KERNEL_HEX_NAME}
+  COMMAND ${CMAKE_OBJCOPY} -S -Oihex ${GAP_FILL_HEX} -R .comment -R COMMON -R .eh_frame  ${KERNEL_ELF_NAME}    ${KERNEL_HEX_NAME}
   )
 
 list_append_ifdef(
@@ -1295,6 +1300,10 @@ add_custom_command(
   COMMENT "Generating files from zephyr.elf for board: ${BOARD}"
   # NB: COMMENT only works for some CMake-Generators
 )
+
+if(EXISTS ${NRF_DIR})
+  include(${NRF_DIR}/after.cmake)
+endif()
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   # Use --print-memory-usage with the first link.

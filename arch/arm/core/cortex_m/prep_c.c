@@ -105,6 +105,9 @@ extern FUNC_NORETURN void _Cstart(void);
  * @return N/A
  */
 
+
+int main(void); /* To be used if not using kernel (NO_KERNEL_INIT). */
+
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
 	extern u64_t __start_time_stamp;
 #endif
@@ -117,6 +120,15 @@ void _PrepC(void)
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT
 	__start_time_stamp = 0;
 #endif
+/* Call main before zephyr startup code tries to setup the kernel runtime
+ * as we only want the C runtime and not the threading, contex switching etc.
+ * we use a define instead of a KConfig variable due to the limitation of only
+ * one KConfig instance.
+ */
+#ifdef NO_KERNEL_INIT
+	main();
+#else
 	_Cstart();
+#endif
 	CODE_UNREACHABLE;
 }
