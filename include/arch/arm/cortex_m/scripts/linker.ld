@@ -75,11 +75,11 @@ MEMORY
     PROVISION             (rx) : ORIGIN = CONFIG_FLASH_BASE_ADDRESS + FLASH_AREA_PROVISION_OFFSET_0, LENGTH = FLASH_AREA_PROVISION_SIZE_0
 #else
 
-#ifdef CONFIG_SECURE_BOOT
+	#ifdef CONFIG_SECURE_BOOT
     FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE - FLASH_AREA_PROVISION_SIZE_0
-#else
+	#else
     FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
-#endif // CONFIG_SECURE_BOOT
+	#endif // CONFIG_SECURE_BOOT
 
 #endif // LINKER_OUTPUT_NAME_bootloader
 
@@ -96,7 +96,7 @@ MEMORY
     }
 
 #if defined(LINKER_OUTPUT_NAME_bootloader) && defined(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK)
-INCLUDE "nrf_common.ld"
+#include "nrf_common.ld"
 #else
 ENTRY(CONFIG_KERNEL_ENTRY)
 #endif
