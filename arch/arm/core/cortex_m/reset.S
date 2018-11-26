@@ -88,8 +88,8 @@ SECTION_SUBSEC_FUNC(TEXT,_reset_section,__start)
      * Set PSP and use it to boot without using MSP, so that it
      * gets set to _interrupt_stack during initialisation.
      */
-	
-	/* We don't want to be using PSP in the bootloader */
+
+    /* Stay in MSP (privileged mode) when jumping to main. */
 #ifndef NO_PSP_SWITCH_ON_RESET
     ldr r0, =_interrupt_stack
     ldr r1, =CONFIG_ISR_STACK_SIZE

@@ -109,7 +109,7 @@ extern FUNC_NORETURN void _Cstart(void);
  * as we don't want to initialize the Zephyr Kernel
  */
 #ifdef NO_KERNEL_INIT
-extern int main();
+	int main(void);
 #endif /* NO_KERNEL_INIT */
 
 #ifdef CONFIG_BOOT_TIME_MEASUREMENT

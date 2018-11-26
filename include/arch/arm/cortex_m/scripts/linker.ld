@@ -130,7 +130,7 @@ SECTIONS
     {
         KEEP(*(.PROVISION_DATA))
     } > PROVISION
-#endif //LINKER_OUTPUT_NAME_bootloader 
+#endif //LINKER_OUTPUT_NAME_bootloader
 
     SECTION_PROLOGUE(_TEXT_SECTION_NAME,,)
 	{

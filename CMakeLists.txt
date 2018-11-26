@@ -1236,26 +1236,6 @@ endif()
 # application to know what the name of the final elf target is.
 set(logical_target_for_zephyr_elf ${logical_target_for_zephyr_elf} PARENT_SCOPE)
 
-if (CONFIG_BUILD_OUTPUT_HEX OR CONFIG_SECURE_BOOT)
-  # When building with a bootloader, the merge target depends on the generated zephyr hex file.
-  # For this to be possible, one can not use post_build_commands. Instead, build the zephyr hex
-  # file using a custom command, and associate a target with the generated file from that command.
-  add_custom_command(
-    OUTPUT zephyr.hex
-    COMMAND ${CMAKE_OBJCOPY}
-    -S
-    -Oihex
-    -R .comment
-    -R COMMON
-    -R .eh_frame
-    ${KERNEL_ELF_NAME}
-    zephyr.hex
-    DEPENDS ${logical_target_for_zephyr_elf}
-    )
-  # Create target to allow dependency to generated file.
-  add_custom_target(zephyr_hex ALL DEPENDS zephyr.hex)
-endif()
-
 # To avoid having the same logical target name for the zephyr lib and
 # the zephyr elf, we set the kernel_elf file name to zephyr.elf.
 set_target_properties(${logical_target_for_zephyr_elf} PROPERTIES OUTPUT_NAME ${KERNEL_NAME})
@@ -1265,6 +1245,16 @@ set(post_build_commands "")
 list_append_ifdef(CONFIG_CHECK_LINK_MAP
   post_build_commands
   COMMAND ${PYTHON_EXECUTABLE} ${ZEPHYR_BASE}/scripts/check_link_map.py ${KERNEL_MAP_NAME}
+  )
+
+if (NOT DEFINED CONFIG_SECURE_BOOT)
+  set(GAP_FILL_HEX "--gap-fill 0xFF")
+endif()
+
+list_append_ifdef(
+  CONFIG_BUILD_OUTPUT_HEX
+  post_build_commands
+  COMMAND ${CMAKE_OBJCOPY} -S -Oihex ${GAP_FILL_HEX} -R .comment -R COMMON -R .eh_frame  ${KERNEL_ELF_NAME}    ${KERNEL_HEX_NAME}
   )
 
 list_append_ifdef(
@@ -1314,7 +1304,6 @@ add_custom_command(
 if(EXISTS ${NRF_DIR})
   include(${NRF_DIR}/after.cmake)
 endif()
-
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   # Use --print-memory-usage with the first link.
