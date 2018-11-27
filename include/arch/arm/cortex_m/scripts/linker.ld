@@ -96,7 +96,7 @@ MEMORY
     }
 
 #if defined(LINKER_OUTPUT_NAME_bootloader) && defined(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK)
-#include "nrf_common.ld"
+#include <nrf_common.ld>
 #else
 ENTRY(CONFIG_KERNEL_ENTRY)
 #endif
