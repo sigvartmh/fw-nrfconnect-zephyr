@@ -308,6 +308,20 @@ zephyr_cc_option(-Wpointer-arith)
 # TODO: Archiver arguments
 # ar_option(D)
 
+# Declare MPU userspace dependencies before the linker scripts to make
+# sure the order of dependencies are met
+if(CONFIG_CPU_HAS_MPU AND CONFIG_USERSPACE)
+  if(CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT AND CONFIG_APP_SHARED_MEM )
+    set(APP_SMEM_DEP app_smem_linker)
+  endif()
+  if(CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT AND CONFIG_APPLICATION_MEMORY)
+    set(ALIGN_SIZING_DEP app_sizing_prebuilt linker_app_sizing_script)
+  endif()
+  if(CONFIG_ARM)
+  set(PRIV_STACK_DEP priv_stacks_prebuilt)
+  endif()
+endif()
+
 set_ifndef(LINKERFLAGPREFIX -Wl)
 
 if(NOT CONFIG_NATIVE_APPLICATION)
@@ -321,6 +335,13 @@ zephyr_ld_options(
   ${LINKERFLAGPREFIX},--gc-sections
   ${LINKERFLAGPREFIX},--build-id=none
   )
+
+if(NOT CONFIG_NATIVE_APPLICATION)
+  set(NOSTDINC_F -nostdinc)
+endif()
+
+get_property(TOPT GLOBAL PROPERTY TOPT)
+set_ifndef(  TOPT -T)
 
 if(NOT CONFIG_NATIVE_APPLICATION)
   # Funny thing is if this is set to =error, some architectures will
@@ -376,6 +397,59 @@ endif()
 
 configure_file(version.h.in ${PROJECT_BINARY_DIR}/include/generated/version.h)
 
+function(construct_add_custom_command_for_linker_pass linker_output_name output_variable)
+  set(linker_cmd_file_name ${linker_output_name}.cmd)
+
+  if (${linker_output_name} MATCHES "^linker_pass_final$")
+    set(linker_pass_define -DLINKER_PASS2)
+  else()
+    set(linker_pass_define "")
+  endif()
+
+  # Different generators deal with depfiles differently.
+  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+    # Note that the IMPLICIT_DEPENDS option is currently supported only
+    # for Makefile generators and will be ignored by other generators.
+    set(LINKER_SCRIPT_DEP IMPLICIT_DEPENDS C ${LINKER_SCRIPT})
+  elseif(CMAKE_GENERATOR STREQUAL "Ninja")
+    # Using DEPFILE with other generators than Ninja is an error.
+    set(LINKER_SCRIPT_DEP DEPFILE ${PROJECT_BINARY_DIR}/${linker_cmd_file_name}.dep)
+  else()
+    # TODO: How would the linker script dependencies work for non-linker
+    # script generators.
+    message(STATUS "Warning; this generator is not well supported. The
+  Linker script may not be regenerated when it should.")
+    set(LINKER_SCRIPT_DEP "")
+  endif()
+
+  get_filename_component(base_name ${CMAKE_CURRENT_BINARY_DIR} NAME)
+
+  zephyr_get_include_directories_for_lang(C current_includes)
+  get_property(current_defines GLOBAL PROPERTY PROPERTY_LINKER_SCRIPT_DEFINES)
+
+  set(${output_variable}
+    OUTPUT ${linker_cmd_file_name}
+    DEPENDS ${LINKER_SCRIPT}
+    ${LINKER_SCRIPT_DEP}
+    COMMAND ${CMAKE_C_COMPILER}
+    -x assembler-with-cpp
+    ${NOSTDINC_F}
+    ${NOSYSDEF_CFLAG}
+    -MD -MF ${linker_cmd_file_name}.dep -MT ${base_name}/${linker_cmd_file_name}
+    ${current_includes}
+    ${current_defines}
+    ${linker_pass_define}
+    -DLINKER_OUTPUT_NAME_${linker_output_name} # Used to identify custom linker scripts
+    -E ${LINKER_SCRIPT}
+    -P # Prevent generation of debug `#line' directives.
+    -o ${linker_cmd_file_name}
+    VERBATIM
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+
+    PARENT_SCOPE
+    )
+endfunction()
+
 # Unfortunately, the order in which CMakeLists.txt code is processed
 # matters so we need to be careful about how we order the processing
 # of subdirectories. One example is "Compiler flags added late in the
@@ -411,7 +485,7 @@ add_subdirectory(ext)
 add_subdirectory(subsys)
 set(NRF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../nrf)
 if(EXISTS ${NRF_DIR})
-	add_subdirectory(${NRF_DIR} ${PROJECT_BINARY_DIR}/nrf)
+  add_subdirectory(${NRF_DIR} ${PROJECT_BINARY_DIR}/nrf)
 endif()
 add_subdirectory(drivers)
 add_subdirectory(tests)
@@ -703,69 +777,8 @@ if(CONFIG_APPLICATION_MEMORY)
   list(APPEND LINKER_SCRIPT_DEFINES ${def})
 endif() # CONFIG_APPLICATION_MEMORY
 
-# Declare MPU userspace dependencies before the linker scripts to make
-# sure the order of dependencies are met
-if(CONFIG_CPU_HAS_MPU AND CONFIG_USERSPACE)
-	if(CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT AND CONFIG_APP_SHARED_MEM )
-    set(APP_SMEM_DEP app_smem_linker)
-  endif()
-  if(CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT AND CONFIG_APPLICATION_MEMORY)
-    set(ALIGN_SIZING_DEP app_sizing_prebuilt linker_app_sizing_script)
-  endif()
-  if(CONFIG_ARM)
-  set(PRIV_STACK_DEP priv_stacks_prebuilt)
-  endif()
-endif()
 
-function(construct_add_custom_command_for_linker_pass linker_output_name output_variable)
-  set(linker_cmd_file_name ${linker_output_name}.cmd)
 
-  if (${linker_output_name} MATCHES "^linker_pass_final$")
-    set(LINKER_PASS_DEFINE -DLINKER_PASS2)
-  else()
-    set(LINKER_PASS_DEFINE "")
-  endif()
-
-  # Different generators deal with depfiles differently.
-  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-    # Note that the IMPLICIT_DEPENDS option is currently supported only
-    # for Makefile generators and will be ignored by other generators.
-    set(LINKER_SCRIPT_DEP IMPLICIT_DEPENDS C ${LINKER_SCRIPT})
-  elseif(CMAKE_GENERATOR STREQUAL "Ninja")
-    # Using DEPFILE with other generators than Ninja is an error.
-    set(LINKER_SCRIPT_DEP DEPFILE ${PROJECT_BINARY_DIR}/${linker_cmd_file_name}.dep)
-  else()
-    # TODO: How would the linker script dependencies work for non-linker
-    # script generators.
-    message(STATUS "Warning; this generator is not well supported. The
-  Linker script may not be regenerated when it should.")
-    set(LINKER_SCRIPT_DEP "")
-  endif()
-
-  set(${output_variable}
-    OUTPUT ${linker_cmd_file_name}
-    DEPENDS ${LINKER_SCRIPT}
-    ${LINKER_SCRIPT_DEP}
-    COMMAND ${CMAKE_C_COMPILER}
-    -x assembler-with-cpp
-    ${NOSTDINC_F}
-    ${NOSYSDEF_CFLAG}
-    -MD -MF ${linker_cmd_file_name}.dep -MT ${BASE_NAME}/${linker_cmd_file_name}
-    ${ZEPHYR_INCLUDES}
-    ${LINKER_SCRIPT_DEFINES}
-    ${LINKER_PASS_DEFINE}
-    -DLINKER_OUTPUT_NAME_${linker_output_name} # Used to identify custom linker scripts
-    -E ${LINKER_SCRIPT}
-    -P # Prevent generation of debug `#line' directives.
-    -o ${linker_cmd_file_name}
-    VERBATIM
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-
-    PARENT_SCOPE
-    )
-endfunction()
-
-get_filename_component(BASE_NAME ${CMAKE_CURRENT_BINARY_DIR} NAME)
 construct_add_custom_command_for_linker_pass(linker custom_command)
 add_custom_command(
   ${custom_command}
@@ -1072,8 +1085,6 @@ endif()
 get_property(GKOF GLOBAL PROPERTY GENERATED_KERNEL_OBJECT_FILES)
 get_property(GKSF GLOBAL PROPERTY GENERATED_KERNEL_SOURCE_FILES)
 
-get_property(TOPT GLOBAL PROPERTY TOPT)
-set_ifndef(  TOPT -T)
 
 get_property(CSTD GLOBAL PROPERTY CSTD)
 set_ifndef(CSTD c99)
@@ -1193,10 +1204,6 @@ set_property(TARGET   zephyr_prebuilt PROPERTY LINK_DEPENDS ${PROJECT_BINARY_DIR
 add_dependencies(     zephyr_prebuilt ${ALIGN_SIZING_DEP} ${PRIV_STACK_DEP} linker_script offsets)
 
 
-if(NOT CONFIG_NATIVE_APPLICATION)
-	set(NOSTDINC_F -nostdinc)
-endif()
-
 if(GKOF OR GKSF)
   set(logical_target_for_zephyr_elf kernel_elf)
 
@@ -1301,9 +1308,6 @@ add_custom_command(
   # NB: COMMENT only works for some CMake-Generators
 )
 
-if(EXISTS ${NRF_DIR})
-  include(${NRF_DIR}/after.cmake)
-endif()
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   # Use --print-memory-usage with the first link.
