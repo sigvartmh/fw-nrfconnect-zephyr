@@ -1248,25 +1248,25 @@ list_append_ifdef(CONFIG_CHECK_LINK_MAP
   )
 
 if (NOT DEFINED CONFIG_SECURE_BOOT)
-  set(GAP_FILL_HEX "--gap-fill 0xFF")
+  set(GAP_FILL "--gap-fill;0xFF")
 endif()
 
 list_append_ifdef(
   CONFIG_BUILD_OUTPUT_HEX
   post_build_commands
-  COMMAND ${CMAKE_OBJCOPY} -S -Oihex ${GAP_FILL_HEX} -R .comment -R COMMON -R .eh_frame  ${KERNEL_ELF_NAME}    ${KERNEL_HEX_NAME}
+  COMMAND ${CMAKE_OBJCOPY} -S -Oihex ${GAP_FILL} -R .comment -R COMMON -R .eh_frame  ${KERNEL_ELF_NAME}    ${KERNEL_HEX_NAME}
   )
 
 list_append_ifdef(
   CONFIG_BUILD_OUTPUT_BIN
   post_build_commands
-  COMMAND ${CMAKE_OBJCOPY} -S -Obinary --gap-fill 0xFF -R .comment -R COMMON -R .eh_frame  ${KERNEL_ELF_NAME}    ${KERNEL_BIN_NAME}
+  COMMAND ${CMAKE_OBJCOPY} -S -Obinary ${GAP_FILL} -R .comment -R COMMON -R .eh_frame  ${KERNEL_ELF_NAME}    ${KERNEL_BIN_NAME}
   )
 
 list_append_ifdef(
   CONFIG_BUILD_OUTPUT_S19
   post_build_commands
-  COMMAND ${CMAKE_OBJCOPY} --gap-fill 0xFF --srec-len 1 --output-target=srec ${KERNEL_ELF_NAME} ${KERNEL_S19_NAME}
+  COMMAND ${CMAKE_OBJCOPY} ${GAP_FILL} --srec-len 1 --output-target=srec ${KERNEL_ELF_NAME} ${KERNEL_S19_NAME}
   )
 
 list_append_ifdef(
