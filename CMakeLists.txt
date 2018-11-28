@@ -439,7 +439,6 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
     ${current_includes}
     ${current_defines}
     ${linker_pass_define}
-    -DLINKER_OUTPUT_NAME_${linker_output_name} # Used to identify custom linker scripts
     -E ${LINKER_SCRIPT}
     -P # Prevent generation of debug `#line' directives.
     -o ${linker_cmd_file_name}
