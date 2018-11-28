@@ -84,7 +84,6 @@ SECTION_SUBSEC_FUNC(TEXT,_reset_section,__start)
     bl memset
 #endif
 
-#ifndef NO_PSP_SWITCH_ON_RESET
     /*
      * Set PSP and use it to boot without using MSP, so that it
      * gets set to _interrupt_stack during initialisation.
@@ -101,7 +100,6 @@ SECTION_SUBSEC_FUNC(TEXT,_reset_section,__start)
      * after the ISB instruction execute using the new stack pointer.
     */
     isb
-#endif /* NO_PSP_SWITCH_ON_RESET */
 
     /*
      * 'bl' jumps the furthest of the branch instructions that are
