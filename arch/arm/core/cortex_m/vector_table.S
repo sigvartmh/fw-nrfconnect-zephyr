@@ -31,11 +31,8 @@ SECTION_SUBSEC_FUNC(exc_vector_table,_vector_table_section,_vector_table)
      * on the interrupt stack when CONFIG_INIT_STACKS is enabled before
      * switching to the interrupt stack for the rest of the early boot
      */
-    #ifdef __STACK_SIZE 
-    .word _main_stack + __STACK_SIZE
-    #else
     .word _main_stack + CONFIG_MAIN_STACK_SIZE
-    #endif
+
     .word __reset
     .word __nmi
 
