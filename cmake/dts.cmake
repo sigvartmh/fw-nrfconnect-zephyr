@@ -11,16 +11,6 @@
 set(GENERATED_DTS_BOARD_H    ${PROJECT_BINARY_DIR}/include/generated/generated_dts_board.h)
 set(GENERATED_DTS_BOARD_CONF ${PROJECT_BINARY_DIR}/include/generated/generated_dts_board.conf)
 set_ifndef(DTS_SOURCE ${BOARD_DIR}/${BOARD}.dts)
-# Check if DTS overlay cmake file is specified through Kconfig.
-# This allows subsystems to include custom overlay files,
-# through setting DTS_COMMON_OVERLAYS.
-if(DEFINED CONFIG_CUSTOM_DTS_OVERLAY_CMAKE_FILE)
-  include(${CONFIG_CUSTOM_DTS_OVERLAY_CMAKE_FILE})
-  if (NOT DEFINED DTS_COMMON_OVERLAYS)
-    message(FATAL_ERROR
-      "failed at setting DTS_COMMON_OVERLAYS in ${CONFIG_CUSTOM_DTS_OVERLAY_CMAKE_FILE}")
-  endif()
-endif()
 set_ifndef(DTS_COMMON_OVERLAYS ${ZEPHYR_BASE}/dts/common/common.dts)
 set_ifndef(DTS_APP_BINDINGS ${APPLICATION_SOURCE_DIR}/dts/bindings)
 set_ifndef(DTS_APP_INCLUDE ${APPLICATION_SOURCE_DIR}/dts)
