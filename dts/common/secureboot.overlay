@@ -113,6 +113,6 @@
 #endif
 / {
 	chosen {
-		zephyr,code-partition = &slot0_partition;
+		zephyr,code-partition = &app_partition;
 	};
 };
