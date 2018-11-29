@@ -18,8 +18,7 @@ enable_language(C CXX ASM)
 # for details.
 #
 # To see a list of typical targets execute "make usage"
-# More info can be located in ./README.rst
-# Comments in this file are targeted only to the developer, do not
+# More info can be located in ./README.rst # Comments in this file are targeted only to the developer, do not
 # expect to learn how to build the kernel reading this file.
 
 # Verify that the toolchain can compile a dummy file, if it is not we
@@ -370,15 +369,20 @@ if(NOT CONFIG_NATIVE_APPLICATION)
 endif()
 
 if(CONFIG_HAVE_CUSTOM_LINKER_SCRIPT)
+  message(WARNING "Using custom linker file")
+  print(CONFIG_HAVE_CUSTOM_LINKER_SCRIPT)
+  print(CONFIG_CUSTOM_LINKER_SCRIPT)
   set(LINKER_SCRIPT ${APPLICATION_SOURCE_DIR}/${CONFIG_CUSTOM_LINKER_SCRIPT})
   if(NOT EXISTS ${LINKER_SCRIPT})
     set(LINKER_SCRIPT ${CONFIG_CUSTOM_LINKER_SCRIPT})
     assert_exists(CONFIG_CUSTOM_LINKER_SCRIPT)
   endif()
 else()
+  message(WARNING "Using board specific linker file")
   # Try a board specific linker file
   set(LINKER_SCRIPT ${BOARD_DIR}/linker.ld)
   if(NOT EXISTS ${LINKER_SCRIPT})
+  message(WARNING "Using soc specific linker file")
     # If not available, try an SoC specific linker file
     set(LINKER_SCRIPT ${SOC_DIR}/${ARCH}/${SOC_PATH}/linker.ld)
   endif()
@@ -426,7 +430,7 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
 
   zephyr_get_include_directories_for_lang(C current_includes)
   get_property(current_defines GLOBAL PROPERTY PROPERTY_LINKER_SCRIPT_DEFINES)
-
+  print(LINKER_SCRIPT)
   set(${output_variable}
     OUTPUT ${linker_cmd_file_name}
     DEPENDS ${LINKER_SCRIPT}
