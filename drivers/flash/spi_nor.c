@@ -175,18 +175,12 @@ static int spi_nor_read(struct device *dev, off_t addr, void *dest,
 {
 	struct spi_nor_data *const driver_data = dev->driver_data;
 	const struct spi_nor_config *params = dev->config->config_info;
-	const u8_t *const p_dest = dest;
 	int ret;
 	int to_read;
 
 	/* should be between 0 and flash size */
 	if ((addr < 0) || (addr + size) >  (params->sector_size
 					   * params->n_sectors)) {
-		return -EINVAL;
-	}
-
-	/* start address should be aligned on a page size */
-	if ((addr & (params->page_size - 1)) != 0) {
 		return -EINVAL;
 	}
 
@@ -203,17 +197,17 @@ static int spi_nor_read(struct device *dev, off_t addr, void *dest,
 		ret = spi_nor_cmd_addr_read(dev, SPI_NOR_CMD_READ, addr,
 					    dest, to_read);
 		if (ret != 0) {
-			goto err;
+			SYNC_UNLOCK();
+			return ret;
 		}
+
 		size -= to_read;
 		addr += to_read;
 		dest = (u8_t *)dest + to_read;
 	}
 
-err:
 	SYNC_UNLOCK();
-
-	return ((u8_t *)dest - p_dest);
+	return 0;
 }
 
 static int spi_nor_write(struct device *dev, off_t addr, const void *src,
@@ -221,18 +215,12 @@ static int spi_nor_write(struct device *dev, off_t addr, const void *src,
 {
 	struct spi_nor_data *const driver_data = dev->driver_data;
 	const struct spi_nor_config *params = dev->config->config_info;
-	const u8_t *const p_src = src;
 	int ret;
 	size_t to_write;
 
 	/* should be between 0 and flash size */
 	if ((addr < 0) || ((size + addr) > (params->sector_size *
 						params->n_sectors))) {
-		return -EINVAL;
-	}
-
-	/* start address should be aligned on a page size */
-	if ((addr & (params->page_size - 1)) != 0) {
 		return -EINVAL;
 	}
 
@@ -250,8 +238,10 @@ static int spi_nor_write(struct device *dev, off_t addr, const void *src,
 		ret = spi_nor_cmd_addr_write(dev, SPI_NOR_CMD_PP, addr,
 					     (void *)src, to_write);
 		if (ret != 0) {
-			goto err;
+			SYNC_UNLOCK();
+			return ret;
 		}
+
 		size -= to_write;
 		addr += to_write;
 		src = (u8_t *)src + to_write;
@@ -259,10 +249,8 @@ static int spi_nor_write(struct device *dev, off_t addr, const void *src,
 		spi_nor_wait_until_ready(dev);
 	}
 
-err:
 	SYNC_UNLOCK();
-
-	return ((u8_t *)src - p_src);
+	return 0;
 }
 
 static int spi_nor_erase(struct device *dev, off_t addr, size_t size)
@@ -409,8 +397,7 @@ static const struct flash_driver_api spi_nor_api = {
 static const struct spi_nor_config flash_id = {
 	JEDEC_ID(CONFIG_SPI_NOR_JEDEC_ID),
 	CONFIG_SPI_NOR_PAGE_SIZE, CONFIG_SPI_NOR_SECTOR_SIZE,
-	CONFIG_SPI_NOR_SECTORS, CONFIG_SPI_NOR_BLOCK_SIZE,
-	CONFIG_SPI_NOR_BLOCK_ERASE_SIZE,
+	CONFIG_SPI_NOR_SECTORS, CONFIG_SPI_NOR_BLOCK_ERASE_SIZE,
 };
 
 static struct spi_nor_data spi_nor_memory_data;

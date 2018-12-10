@@ -36,12 +36,7 @@
 #define DW_ICTL_NUM_IRQS			9
 
 /* GPIO */
-#define DT_GPIO_DW_0_BASE_ADDR			0x00080C00
-#define DT_GPIO_DW_0_BITS				32
 #define GPIO_DW_PORT_0_INT_MASK			0
-#define DT_GPIO_DW_0_IRQ_FLAGS			0
-#define DT_GPIO_DW_0_IRQ				0x00040706
-#define GPIO_DW_0_IRQ_ICTL_OFFSET		INTR_CNTL_IRQ_NUM(DT_GPIO_DW_0_IRQ)
 
 /* low power DMACs */
 #define LP_GP_DMA_SIZE				0x00001000
@@ -96,17 +91,6 @@
 
 #define SOC_NUM_LPGPDMAC			3
 #define SOC_NUM_CHANNELS_IN_DMAC		8
-
-#define IOMUX_BASE				0x00081C00
-#define SOC_I2C_I0_I1_MS			BIT(0)
-#define SOC_UART_RTS_CTS_MS			BIT(16)
-
-struct soc_io_mux_regs {
-	u32_t	reserved[12];
-	u32_t	io_mux_ctl0;
-	u32_t	io_mux_ctl1;
-	u32_t	io_mux_ctl2;
-};
 
 /* SOC Resource Allocation Registers */
 #define SOC_RESOURCE_ALLOC_REG_BASE		0x00071A60

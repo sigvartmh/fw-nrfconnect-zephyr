@@ -239,6 +239,17 @@ static void usb_dc_isr(void)
 		dev_data.status_cb(USB_DC_SUSPEND, NULL);
 	}
 
+#ifdef CONFIG_USB_DEVICE_SOF
+	/* SOF interrupt */
+	if (sr & USBHS_DEVISR_SOF) {
+		/* Acknowledge the interrupt */
+		USBHS->USBHS_DEVICR = USBHS_DEVICR_SOFC;
+
+		/* Callback function */
+		dev_data.status_cb(USB_DC_SOF, NULL);
+	}
+#endif
+
 	/* EP0 endpoint interrupt */
 	if (sr & USBHS_DEVISR_PEP_0) {
 		usb_dc_ep0_isr();
@@ -296,6 +307,9 @@ int usb_dc_attach(void)
 	USBHS->USBHS_DEVIER = USBHS_DEVIER_EORSMES;
 	USBHS->USBHS_DEVIER = USBHS_DEVIER_EORSTES;
 	USBHS->USBHS_DEVIER = USBHS_DEVIER_SUSPES;
+#ifdef CONFIG_USB_DEVICE_SOF
+	USBHS->USBHS_DEVIER = USBHS_DEVIER_SOFES;
+#endif
 
 	/* Connect and enable the interrupt */
 	IRQ_CONNECT(DT_USBHS_IRQ, DT_USBHS_IRQ_PRI, usb_dc_isr, 0, 0);
@@ -408,7 +422,7 @@ int usb_dc_ep_configure(const struct usb_dc_ep_cfg_data *const cfg)
 	u8_t ep_idx = EP_ADDR2IDX(cfg->ep_addr);
 	bool ep_configured[DT_USBHS_NUM_BIDIR_EP];
 	bool ep_enabled[DT_USBHS_NUM_BIDIR_EP];
-	u32_t regval = 0;
+	u32_t regval = 0U;
 	int log2ceil_mps;
 
 	if (usb_dc_ep_check_cap(cfg) != 0) {
@@ -658,7 +672,7 @@ int usb_dc_ep_flush(u8_t ep)
 int usb_dc_ep_write(u8_t ep, const u8_t *data, u32_t data_len, u32_t *ret_bytes)
 {
 	u8_t ep_idx = EP_ADDR2IDX(ep);
-	u32_t packet_len = min(data_len, usb_dc_ep_mps(ep));
+	u32_t packet_len;
 
 	if (ep_idx >= DT_USBHS_NUM_BIDIR_EP) {
 		LOG_ERR("wrong endpoint index/address");
@@ -681,6 +695,7 @@ int usb_dc_ep_write(u8_t ep, const u8_t *data, u32_t data_len, u32_t *ret_bytes)
 	}
 
 	/* Write the data to the FIFO */
+	packet_len = min(data_len, dev_data.ep_data[ep_idx].mps);
 	for (int i = 0; i < packet_len; i++) {
 		usb_dc_ep_fifo_put(ep_idx, data[i]);
 	}

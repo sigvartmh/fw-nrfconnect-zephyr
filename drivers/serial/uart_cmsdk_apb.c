@@ -185,10 +185,8 @@ static int uart_cmsdk_apb_poll_in(struct device *dev, unsigned char *c)
  *
  * @param dev UART device struct
  * @param c Character to send
- *
- * @return Sent character
  */
-static unsigned char uart_cmsdk_apb_poll_out(struct device *dev,
+static void uart_cmsdk_apb_poll_out(struct device *dev,
 					     unsigned char c)
 {
 	volatile struct uart_cmsdk_apb *uart = UART_STRUCT(dev);
@@ -200,7 +198,6 @@ static unsigned char uart_cmsdk_apb_poll_out(struct device *dev,
 
 	/* Send a character */
 	uart->data = (u32_t)c;
-	return c;
 }
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
@@ -426,13 +423,13 @@ void uart_cmsdk_apb_isr(void *arg)
 	volatile struct uart_cmsdk_apb *uart = UART_STRUCT(dev);
 	struct uart_cmsdk_apb_dev_data *data = DEV_DATA(dev);
 
+	/* Clear pending interrupts */
+	uart->intclear = UART_RX_IN | UART_TX_IN;
+
 	/* Verify if the callback has been registered */
 	if (data->irq_cb) {
 		data->irq_cb(data->irq_cb_data);
 	}
-
-	/* Clear pending interrupts */
-	uart->intclear = UART_RX_IN | UART_TX_IN;
 }
 
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */

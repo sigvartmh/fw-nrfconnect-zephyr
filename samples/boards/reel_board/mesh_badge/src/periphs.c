@@ -60,8 +60,9 @@ static void configure_gpios(void)
 
 int set_led_state(u8_t id, bool state)
 {
+	/* Invert state because of active low state for GPIO LED pins */
 	return gpio_pin_write(led_dev_info[id].dev, led_dev_info[id].pin,
-			      state);
+			      !state);
 }
 
 int get_hdc1010_val(struct sensor_value *val)
@@ -127,7 +128,7 @@ int periphs_init(void)
 	unsigned int i;
 
 	/* Bind sensors */
-	for (i = 0; i < ARRAY_SIZE(dev_info); i++) {
+	for (i = 0U; i < ARRAY_SIZE(dev_info); i++) {
 		dev_info[i].dev = device_get_binding(dev_info[i].name);
 		if (dev_info[i].dev == NULL) {
 			printk("Failed to get %s device\n", dev_info[i].name);
@@ -136,7 +137,7 @@ int periphs_init(void)
 	}
 
 	/* Bind leds */
-	for (i = 0; i < ARRAY_SIZE(led_dev_info); i++) {
+	for (i = 0U; i < ARRAY_SIZE(led_dev_info); i++) {
 		led_dev_info[i].dev = device_get_binding(led_dev_info[i].name);
 		if (led_dev_info[i].dev == NULL) {
 			printk("Failed to get %s led device\n",
