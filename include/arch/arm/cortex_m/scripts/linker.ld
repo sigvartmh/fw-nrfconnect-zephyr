@@ -68,6 +68,8 @@
 	#define RAM_ADDR CONFIG_SRAM_BASE_ADDRESS
 #endif
 
+#define _RTT_SECTION_NAME .rtt
+
 /* Set alignment to CONFIG_ARM_MPU_REGION_MIN_ALIGN_AND_SIZE
  * to make linker section alignment comply with MPU granularity.
  */
@@ -96,7 +98,8 @@ MEMORY
 #ifdef CONFIG_CCM_BASE_ADDRESS
     CCM                   (rw) : ORIGIN = CONFIG_CCM_BASE_ADDRESS, LENGTH = CONFIG_CCM_SIZE * 1K
 #endif
-    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
+    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE-16K
+    RTT                   (wx) : ORIGIN = (RAM_ADDR + RAM_SIZE)-16K, LENGTH = 16K
 
     /* Used by and documented in include/linker/intlist.ld */
     IDT_LIST  (wx)      : ORIGIN = (RAM_ADDR + RAM_SIZE), LENGTH = 2K
@@ -412,6 +415,14 @@ SECTIONS
 		 */
 	__bss_end = ALIGN(4);
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
+	
+    SECTION_PROLOGUE(_RTT_SECTION_NAME,(NOLOAD),)
+    {
+		KERNEL_INPUT_SECTION(.rtt)
+		KERNEL_INPUT_SECTION(".rtt.*")
+		KERNEL_INPUT_SECTION(.rtt.buffer)
+		KERNEL_INPUT_SECTION(".rtt.buffer.*")
+    } GROUP_LINK_IN(RTT)
 
     SECTION_PROLOGUE(_NOINIT_SECTION_NAME,(NOLOAD),)
         {

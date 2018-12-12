@@ -31,7 +31,7 @@
 *   disclaimer in the documentation and/or other materials provided  *
 *   with the distribution.                                           *
 *                                                                    *
-* o Neither the name of SEGGER Microcontroller GmbH         *
+* o Neither the name of SEGGER Microcontroller GmbH                  *
 *   nor the names of its contributors may be used to endorse or      *
 *   promote products derived from this software without specific     *
 *   prior written permission.                                        *
@@ -52,7 +52,7 @@
 *                                                                    *
 **********************************************************************
 *                                                                    *
-*       RTT version: 6.32d                                           *
+*       RTT version: 6.40                                           *
 *                                                                    *
 **********************************************************************
 ---------------------------END-OF-HEADER------------------------------
@@ -60,7 +60,7 @@ File    : SEGGER_RTT.c
 Purpose : Implementation of SEGGER real-time transfer (RTT) which
           allows real-time communication on targets which support
           debugger memory accesses while the CPU is running.
-Revision: $Rev: 10887 $
+Revision: $Rev: 12804 $
 
 Additional information:
           Type "int" is assumed to be 32-bits in size
@@ -193,7 +193,8 @@ Additional information:
 #endif
 
 #if defined(SEGGER_RTT_SECTION) || defined (SEGGER_RTT_BUFFER_SECTION)
-  #if (defined __GNUC__)
+  #if (defined __GNUC__) 
+	#warning "Placing custom section"
     #define SEGGER_RTT_PUT_SECTION(Var, Section) __attribute__ ((section (Section))) Var
   #elif (defined __ICCARM__) || (defined __ICCRX__)
 #define SEGGER_RTT_PUT_SECTION(Var, Section) RTT_PRAGMA(location=Section) \
@@ -274,6 +275,7 @@ static char _ActiveTerminal;
 *    May only be called via INIT() to avoid overriding settings.
 *
 */
+
 #define INIT()  do {                                            \
                   if (_SEGGER_RTT.acID[0] == '\0') { _DoInit(); }  \
                 } while (0)
@@ -311,6 +313,15 @@ static void _DoInit(void) {
   strcpy(&p->acID[7], "RTT");
   strcpy(&p->acID[0], "SEGGER");
   p->acID[6] = ' ';
+}
+
+#define STREQUAL(a,b) (strcmp((a),(b)) == 0)
+static void lazy_init(void){
+	SEGGER_RTT_CB* p;
+	p = &_SEGGER_RTT;
+	if(!(STREQUAL(&p->acID[7], "RTT") && STREQUAL(&p->acID[7], "RTT") && p->acID[6] == ' ')){
+		_DoInit();
+	}
 }
 
 /*********************************************************************
@@ -1619,8 +1630,10 @@ int SEGGER_RTT_SetFlagsDownBuffer(unsigned BufferIndex, unsigned Flags) {
 *
 */
 void SEGGER_RTT_Init (void) {
-  _DoInit();
+	lazy_init();
+	//_DoInit();
 }
+
 
 /*********************************************************************
 *

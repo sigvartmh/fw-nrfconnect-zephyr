@@ -31,7 +31,7 @@
 *   disclaimer in the documentation and/or other materials provided  *
 *   with the distribution.                                           *
 *                                                                    *
-* o Neither the name of SEGGER Microcontroller GmbH         *
+* o Neither the name of SEGGER Microcontroller GmbH                  *
 *   nor the names of its contributors may be used to endorse or      *
 *   promote products derived from this software without specific     *
 *   prior written permission.                                        *
@@ -52,17 +52,17 @@
 *                                                                    *
 **********************************************************************
 *                                                                    *
-*       RTT version: 6.32d                                           *
+*       RTT version: 6.40                                           *
 *                                                                    *
 **********************************************************************
 ---------------------------END-OF-HEADER------------------------------
 File    : SEGGER_RTT_printf.c
 Purpose : Replacement for printf to write formatted data via RTT
-Revision: $Rev: 9599 $
+Revision: $Rev: 12360 $
 ----------------------------------------------------------------------
 */
 #include "SEGGER_RTT.h"
-#include <SEGGER_RTT_Conf.h>
+#include "SEGGER_RTT_Conf.h"
 
 /*********************************************************************
 *
@@ -107,7 +107,6 @@ typedef struct {
 *
 **********************************************************************
 */
-int SEGGER_RTT_vprintf(unsigned BufferIndex, const char * sFormat, va_list * pParamList);
 
 /*********************************************************************
 *
