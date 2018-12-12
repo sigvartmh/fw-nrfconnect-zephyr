@@ -232,7 +232,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
 
   if(NOT BOARD_DIR)
     message("No board name '${BOARD}' found")
-    print usage()
+    print_usage()
     unset(CACHED_BOARD CACHE)
     message(FATAL_ERROR "Invalid usage")
   endif()
