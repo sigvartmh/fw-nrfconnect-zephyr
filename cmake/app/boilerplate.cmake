@@ -26,9 +26,9 @@
 cmake_minimum_required(VERSION 3.8.2)
 
 cmake_policy(SET CMP0002 NEW)
-if(MULTI_IMAGE EQUAL 1)
-  message("OOOOOOOOONE")
-endif()
+
+get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
+get_property(IMAGE GLOBAL PROPERTY IMAGE)
 
 if(MULTI_IMAGE)
   set(FIRST_BOILERPLATE_EXECUTION 0)
@@ -42,7 +42,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
 else()
   set(IMAGE_ALIAS ${IMAGE})
   # Clear the Kconfig namespace of the other image.
-  
+
   # TODO: How to restore it?
   get_cmake_property(names VARIABLES)
   foreach (name ${names})
