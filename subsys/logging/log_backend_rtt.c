@@ -99,7 +99,8 @@ static int line_out(u8_t data)
 
 
 static int log_backend_rtt_write_drop(void)
-{
+{  
+	unsigned int ret;
 	*line_pos = '\r';
 
 	if (drop_cnt > 0 && !drop_warn) {
@@ -125,7 +126,7 @@ static int log_backend_rtt_write_drop(void)
 	}
 
 	RTT_LOCK();
-	int ret = SEGGER_RTT_WriteSkipNoLock(CONFIG_LOG_BACKEND_RTT_BUFFER,
+	ret = SEGGER_RTT_WriteSkipNoLock(CONFIG_LOG_BACKEND_RTT_BUFFER,
 					     line_buf, line_pos - line_buf + 1);
 	RTT_UNLOCK();
 

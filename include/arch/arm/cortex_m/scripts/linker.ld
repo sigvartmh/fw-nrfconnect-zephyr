@@ -90,8 +90,22 @@ _region_min_align = 4;
 #else
 #define MPU_ALIGN(region_size) \
     . = ALIGN(_region_min_align)
+#endif 
+
+#ifdef CONFIG_SEGGER_RTT_USE_LINKER_SECTION
+#define CONFIG_CUSTOM_SIZE 8 
+#define CUSTOM_SECTION 8
+/* #define CONIFG_MULTI_IMAGE_SHARED_MEMORY 
+ */
 #endif
 
+/*
+#ifndef CONIFG_MULTI_IMAGE_SHARED_MEMORY
+#define SHARED_RAM 0
+#else
+#define SHARED_RAM CONFIG_CUSTOM_SIZE
+#endif
+*/ 
 MEMORY
     {
     FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
@@ -430,11 +444,11 @@ SECTIONS
 		 */
 	__bss_end = ALIGN(4);
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
-
+	
     SECTION_PROLOGUE(_NOINIT_SECTION_NAME,(NOLOAD),)
         {
         /*
-         * This section is used for non-initialized objects that
+         * this section is used for non-initialized objects that
          * will not be cleared during the boot process.
          */
         KERNEL_INPUT_SECTION(.noinit)
@@ -535,7 +549,6 @@ SECTIONS
 #endif
 
 #include <linker/debug-sections.ld>
-
     SECTION_PROLOGUE(.ARM.attributes, 0,)
 	{
 	KEEP(*(.ARM.attributes))

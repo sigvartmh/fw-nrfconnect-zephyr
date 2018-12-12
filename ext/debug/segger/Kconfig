@@ -25,6 +25,9 @@ config SEGGER_SYSTEMVIEW
 	select THREAD_STACK_INFO
 	select TRACING
 
+config SEGGER_RTT_USE_LINKER_SECTION
+	bool "Segger RTT custom linker sections"
+
 config SEGGER_RTT_MAX_NUM_UP_BUFFERS
 	int "Maximum number of up-buffers"
 	default 3
