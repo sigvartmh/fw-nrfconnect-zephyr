@@ -783,9 +783,9 @@ if(CONFIG_APPLICATION_MEMORY)
     set(def "${def} ${f}")
   endforeach()
   set_property(GLOBAL APPEND PROPERTY
-	PROPERTY_LINKER_SCRIPT_DEFINES
-	${def}
-	)
+    PROPERTY_LINKER_SCRIPT_DEFINES
+    ${def}
+    )
 endif() # CONFIG_APPLICATION_MEMORY
 
 
@@ -819,13 +819,15 @@ set_property(TARGET
   )
 
 set(zephyr_lnk
-  ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${KERNEL_MAP_NAME}
+  ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${IMAGE}.map
   -u_OffsetAbsSyms
   -u_ConfigAbsSyms
   ${LINKERFLAGPREFIX},--whole-archive
   ${ZEPHYR_LIBS_PROPERTY}
   ${LINKERFLAGPREFIX},--no-whole-archive
-  ${IMAGE}kernel
+  if(NOT CONFIG_NO_KERNEL)
+    ${IMAGE}kernel
+  endif()
   ${OFFSETS_O_PATH}
   ${LIB_INCLUDE_DIR}
   -L${PROJECT_BINARY_DIR}
