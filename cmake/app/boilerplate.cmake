@@ -26,6 +26,11 @@
 cmake_minimum_required(VERSION 3.8.2)
 
 cmake_policy(SET CMP0002 NEW)
+if(NOT (${CMAKE_VERSION} VERSION_LESS "3.13.0"))
+  # Use the old CMake behaviour until 3.13.x is required and the build
+  # scripts have been ported to the new behaviour.
+  cmake_policy(SET CMP0079 OLD)
+endif()
 
 get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
 get_property(IMAGE GLOBAL PROPERTY IMAGE)
@@ -87,6 +92,7 @@ set(APPLICATION_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 message(STATUS "Using application from '${APPLICATION_SOURCE_DIR}'")
 
 set(__build_dir ${CMAKE_CURRENT_BINARY_DIR}/zephyr)
+message("CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}")
 
 set(PROJECT_BINARY_DIR ${__build_dir})
 

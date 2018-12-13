@@ -97,7 +97,7 @@ endfunction()
 
 # https://cmake.org/cmake/help/latest/command/target_link_libraries.html
 function(zephyr_link_libraries)
-  target_link_libraries(}${IMAGE}zephyr_interface INTERFACE ${ARGV})
+  target_link_libraries(${IMAGE}zephyr_interface INTERFACE ${ARGV})
 endfunction()
 
 # See this file section 3.1. target_cc_option

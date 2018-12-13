@@ -825,7 +825,7 @@ set(zephyr_lnk
   ${LINKERFLAGPREFIX},--whole-archive
   ${ZEPHYR_LIBS_PROPERTY}
   ${LINKERFLAGPREFIX},--no-whole-archive
-  if(NOT CONFIG_NO_KERNEL)
+  if(CONFIG_KERNEL)
     ${IMAGE}kernel
   endif()
   ${OFFSETS_O_PATH}
