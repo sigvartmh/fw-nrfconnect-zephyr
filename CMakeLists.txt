@@ -490,8 +490,11 @@ set(NRF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../nrf)
 if(EXISTS ${NRF_DIR})
 	add_subdirectory(${NRF_DIR} ${PROJECT_BINARY_DIR}/nrf)
 endif()
+# TODO do this in kconfig instead
+if(CONFIG_KERNEL)
 add_subdirectory(drivers)
 add_subdirectory(tests)
+endif()
 
 set(syscall_macros_h ${ZEPHYR_BINARY_DIR}/include/generated/syscall_macros.h)
 
@@ -1277,7 +1280,6 @@ if(NOT CONFIG_BUILD_NO_GAP_FILL)
   set(GAP_FILL "--gap-fill;0xff")
 endif()
 
-print(KERNEL_HEX_NAME)
 list_append_ifdef(
   CONFIG_BUILD_OUTPUT_HEX
   post_build_commands

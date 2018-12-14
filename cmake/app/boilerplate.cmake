@@ -306,7 +306,6 @@ include(${ZEPHYR_BASE}/cmake/kconfig.cmake)
 
 if(FIRST_BOILERPLATE_EXECUTION)
   include(${ZEPHYR_BASE}/cmake/toolchain.cmake)
-
   find_package(Git QUIET)
   if(GIT_FOUND)
 	execute_process(COMMAND ${GIT_EXECUTABLE} describe
