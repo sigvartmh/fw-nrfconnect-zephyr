@@ -12,6 +12,11 @@ config CPU_CORTEX
 	help
 	  This option signifies the use of a CPU of the Cortex family.
 
+config CPU_CORTEX_M_C_RUNTIME_SETUP
+	bool "Include Cortex-M C runtime setup"
+	default y
+	depends on CPU_CORTEX_M
+
 config CPU_CORTEX_M
 	bool
 	# Omit prompt to signify "hidden" option

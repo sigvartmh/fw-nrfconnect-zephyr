@@ -174,3 +174,4 @@ add_custom_target(${IMAGE}config-sanitycheck DEPENDS ${DOTCONFIG})
 # Parse the lines prefixed with CONFIG_ in the .config file from Kconfig
 print(DOTCONFIG)
 import_kconfig(${DOTCONFIG})
+print(CONFIG_SB_C_RUNTIME_SETUP_VARIANT_MDK)

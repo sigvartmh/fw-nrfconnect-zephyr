@@ -818,6 +818,10 @@ set_property(TARGET
   ${ZEPHYR_INCLUDE_DIRS}
   )
 
+if(CONFIG_KERNEL)
+  set(KERNEL ${IMAGE}kernel)
+endif()
+
 set(zephyr_lnk
   ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${IMAGE}.map
   -u_OffsetAbsSyms
@@ -825,9 +829,7 @@ set(zephyr_lnk
   ${LINKERFLAGPREFIX},--whole-archive
   ${ZEPHYR_LIBS_PROPERTY}
   ${LINKERFLAGPREFIX},--no-whole-archive
-  if(CONFIG_KERNEL)
-    ${IMAGE}kernel
-  endif()
+  ${KERNEL}
   ${OFFSETS_O_PATH}
   ${LIB_INCLUDE_DIR}
   -L${PROJECT_BINARY_DIR}
@@ -1275,6 +1277,7 @@ if(NOT CONFIG_BUILD_NO_GAP_FILL)
   set(GAP_FILL "--gap-fill;0xff")
 endif()
 
+print(KERNEL_HEX_NAME)
 list_append_ifdef(
   CONFIG_BUILD_OUTPUT_HEX
   post_build_commands
@@ -1322,30 +1325,34 @@ add_custom_command(
   POST_BUILD
   ${post_build_commands}
   COMMENT "Generating files from zephyr.elf for board: ${BOARD}"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   # NB: COMMENT only works for some CMake-Generators
 )
+if(FIRST_BOILERPLATE_EXECUTION)
 
-# To populate with hex files to merge, do the following:
-#  set_property(GLOBAL APPEND PROPERTY HEX_FILES_TO_MERGE ${my_local_list})
-# Note that the zephyr.hex file will not be included automatically.
-get_property(HEX_FILES_TO_MERGE GLOBAL PROPERTY HEX_FILES_TO_MERGE)
-if(HEX_FILES_TO_MERGE)
-  # Merge in out-of-tree hex files.
-  set(MERGED_HEX_NAME merged.hex)
+  # To populate with hex files to merge, do the following:
+  #  set_property(GLOBAL APPEND PROPERTY HEX_FILES_TO_MERGE ${my_local_list})
+  # Note that the zephyr.hex file will not be included automatically.
+  get_property(HEX_FILES_TO_MERGE GLOBAL PROPERTY HEX_FILES_TO_MERGE)
+  if(HEX_FILES_TO_MERGE)
+    # Merge in out-of-tree hex files.
+    set(MERGED_HEX_NAME merged.hex)
 
-  add_custom_command(
-    OUTPUT ${MERGED_HEX_NAME}
-    COMMAND
-    ${PYTHON_EXECUTABLE}
-    ${ZEPHYR_BASE}/scripts/mergehex.py
-    -o ${MERGED_HEX_NAME}
-    ${HEX_FILES_TO_MERGE}
-    DEPENDS ${HEX_FILES_TO_MERGE} ${logical_target_for_zephyr_elf}
-    )
+    add_custom_command(
+      OUTPUT ${MERGED_HEX_NAME}
+      COMMAND
+      ${PYTHON_EXECUTABLE}
+      ${ZEPHYR_BASE}/scripts/mergehex.py
+      -o ${MERGED_HEX_NAME}
+      ${HEX_FILES_TO_MERGE}
+      DEPENDS ${HEX_FILES_TO_MERGE} ${logical_target_for_zephyr_elf}
+      )
 
-  add_custom_target(mergehex ALL DEPENDS ${MERGED_HEX_NAME})
-  list(APPEND FLASH_DEPS mergehex)
-endif()
+    add_custom_target(mergehex ALL DEPENDS ${MERGED_HEX_NAME})
+    list(APPEND FLASH_DEPS mergehex)
+  endif()
+
+endif(FIRST_BOILERPLATE_EXECUTION)
 
 if(CONFIG_OUTPUT_PRINT_MEMORY_USAGE)
   # Use --print-memory-usage with the first link.
