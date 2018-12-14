@@ -98,9 +98,8 @@ MEMORY
 #ifdef CONFIG_CCM_BASE_ADDRESS
     CCM                   (rw) : ORIGIN = CONFIG_CCM_BASE_ADDRESS, LENGTH = CONFIG_CCM_SIZE * 1K
 #endif
-    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE-16K
-    RTT                   (wx) : ORIGIN = (RAM_ADDR + RAM_SIZE)-16K, LENGTH = 16K
-
+    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE - 8K
+    RTT                   (wx) : ORIGIN = (RAM_ADDR + RAM_SIZE) - 8K, LENGTH = 8K
     /* Used by and documented in include/linker/intlist.ld */
     IDT_LIST  (wx)      : ORIGIN = (RAM_ADDR + RAM_SIZE), LENGTH = 2K
     }
@@ -427,7 +426,7 @@ SECTIONS
     SECTION_PROLOGUE(_NOINIT_SECTION_NAME,(NOLOAD),)
         {
         /*
-         * This section is used for non-initialized objects that
+         * this section is used for non-initialized objects that
          * will not be cleared during the boot process.
          */
         KERNEL_INPUT_SECTION(.noinit)
@@ -528,6 +527,11 @@ SECTIONS
 #endif
 
 #include <linker/debug-sections.ld>
+	SECTION_PROLOGUE(rtt,,)
+	{
+		KEEP(*(.rtt))
+		KEEP(*(".rtt.*"))
+	} GROUP_DATA_LINK_IN(RTT, RTT)
 
     SECTION_PROLOGUE(.ARM.attributes, 0,)
 	{

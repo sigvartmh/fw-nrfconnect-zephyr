@@ -276,6 +276,11 @@ static char _ActiveTerminal;
 *
 */
 
+#define STRNEQUAL(a, b, n) (strncmp((a),(b), (n)) == 0)
+#define STREQUAL(a,b) (strcmp((a),(b)) == 0)
+#define LAZY_INIT()  do {                                            \
+                  if (!STRNEQUAL(_SEGGER_RTT.acID, "SEGGER RTT", STRLEN("SEGGER RTT"))) { _DoInit(); }  \
+                } while (0)
 #define INIT()  do {                                            \
                   if (_SEGGER_RTT.acID[0] == '\0') { _DoInit(); }  \
                 } while (0)
@@ -313,15 +318,6 @@ static void _DoInit(void) {
   strcpy(&p->acID[7], "RTT");
   strcpy(&p->acID[0], "SEGGER");
   p->acID[6] = ' ';
-}
-
-#define STREQUAL(a,b) (strcmp((a),(b)) == 0)
-static void lazy_init(void){
-	SEGGER_RTT_CB* p;
-	p = &_SEGGER_RTT;
-	if(!(STREQUAL(&p->acID[7], "RTT") && STREQUAL(&p->acID[7], "RTT") && p->acID[6] == ' ')){
-		_DoInit();
-	}
 }
 
 /*********************************************************************
@@ -545,7 +541,7 @@ unsigned SEGGER_RTT_ReadNoLock(unsigned BufferIndex, void* pData, unsigned Buffe
   const char*             pSrc;
 #endif
   //
-  INIT();
+  LAZY_INIT();
   pRing = &_SEGGER_RTT.aDown[BufferIndex];
   pBuffer = (unsigned char*)pData;
   RdOff = pRing->RdOff;
@@ -977,7 +973,7 @@ unsigned SEGGER_RTT_WriteNoLock(unsigned BufferIndex, const void* pBuffer, unsig
 unsigned SEGGER_RTT_Write(unsigned BufferIndex, const void* pBuffer, unsigned NumBytes) {
   unsigned Status;
   //
-  INIT();
+  LAZY_INIT();
   SEGGER_RTT_LOCK();
   //
   // Call the non-locking write function
@@ -1095,7 +1091,7 @@ unsigned SEGGER_RTT_PutCharSkip(unsigned BufferIndex, char c) {
   //
   // Prepare
   //
-  INIT();
+  LAZY_INIT();
   SEGGER_RTT_LOCK();
   //
   // Get "to-host" ring buffer.
@@ -1151,7 +1147,7 @@ unsigned SEGGER_RTT_PutChar(unsigned BufferIndex, char c) {
   //
   // Prepare
   //
-  INIT();
+  LAZY_INIT();
   SEGGER_RTT_LOCK();
   //
   // Get "to-host" ring buffer.
@@ -1260,7 +1256,7 @@ int SEGGER_RTT_HasKey(void) {
   unsigned RdOff;
   int r;
 
-  INIT();
+  LAZY_INIT();
   RdOff = _SEGGER_RTT.aDown[0].RdOff;
   if (RdOff != _SEGGER_RTT.aDown[0].WrOff) {
     r = 1;
@@ -1334,7 +1330,7 @@ unsigned SEGGER_RTT_HasDataUp(unsigned BufferIndex) {
 int SEGGER_RTT_AllocDownBuffer(const char* sName, void* pBuffer, unsigned BufferSize, unsigned Flags) {
   int BufferIndex;
 
-  INIT();
+  LAZY_INIT();
   SEGGER_RTT_LOCK();
   BufferIndex = 0;
   do {
@@ -1379,7 +1375,7 @@ int SEGGER_RTT_AllocDownBuffer(const char* sName, void* pBuffer, unsigned Buffer
 int SEGGER_RTT_AllocUpBuffer(const char* sName, void* pBuffer, unsigned BufferSize, unsigned Flags) {
   int BufferIndex;
 
-  INIT();
+  LAZY_INIT();
   SEGGER_RTT_LOCK();
   BufferIndex = 0;
   do {
@@ -1430,7 +1426,7 @@ int SEGGER_RTT_AllocUpBuffer(const char* sName, void* pBuffer, unsigned BufferSi
 int SEGGER_RTT_ConfigUpBuffer(unsigned BufferIndex, const char* sName, void* pBuffer, unsigned BufferSize, unsigned Flags) {
   int r;
 
-  INIT();
+  LAZY_INIT();
   if (BufferIndex < (unsigned)_SEGGER_RTT.MaxNumUpBuffers) {
     SEGGER_RTT_LOCK();
     if (BufferIndex > 0u) {
@@ -1477,7 +1473,7 @@ int SEGGER_RTT_ConfigUpBuffer(unsigned BufferIndex, const char* sName, void* pBu
 int SEGGER_RTT_ConfigDownBuffer(unsigned BufferIndex, const char* sName, void* pBuffer, unsigned BufferSize, unsigned Flags) {
   int r;
 
-  INIT();
+  LAZY_INIT();
   if (BufferIndex < (unsigned)_SEGGER_RTT.MaxNumDownBuffers) {
     SEGGER_RTT_LOCK();
     if (BufferIndex > 0u) {
@@ -1515,7 +1511,7 @@ int SEGGER_RTT_ConfigDownBuffer(unsigned BufferIndex, const char* sName, void* p
 int SEGGER_RTT_SetNameUpBuffer(unsigned BufferIndex, const char* sName) {
   int r;
 
-  INIT();
+  LAZY_INIT();
   if (BufferIndex < (unsigned)_SEGGER_RTT.MaxNumUpBuffers) {
     SEGGER_RTT_LOCK();
     _SEGGER_RTT.aUp[BufferIndex].sName = sName;
@@ -1546,7 +1542,7 @@ int SEGGER_RTT_SetNameUpBuffer(unsigned BufferIndex, const char* sName) {
 int SEGGER_RTT_SetNameDownBuffer(unsigned BufferIndex, const char* sName) {
   int r;
 
-  INIT();
+  LAZY_INIT();
   if (BufferIndex < (unsigned)_SEGGER_RTT.MaxNumDownBuffers) {
     SEGGER_RTT_LOCK();
     _SEGGER_RTT.aDown[BufferIndex].sName = sName;
@@ -1577,7 +1573,7 @@ int SEGGER_RTT_SetNameDownBuffer(unsigned BufferIndex, const char* sName) {
 int SEGGER_RTT_SetFlagsUpBuffer(unsigned BufferIndex, unsigned Flags) {
   int r;
 
-  INIT();
+  LAZY_INIT();
   if (BufferIndex < (unsigned)_SEGGER_RTT.MaxNumUpBuffers) {
     SEGGER_RTT_LOCK();
     _SEGGER_RTT.aUp[BufferIndex].Flags = Flags;
@@ -1608,7 +1604,7 @@ int SEGGER_RTT_SetFlagsUpBuffer(unsigned BufferIndex, unsigned Flags) {
 int SEGGER_RTT_SetFlagsDownBuffer(unsigned BufferIndex, unsigned Flags) {
   int r;
 
-  INIT();
+  LAZY_INIT();
   if (BufferIndex < (unsigned)_SEGGER_RTT.MaxNumDownBuffers) {
     SEGGER_RTT_LOCK();
     _SEGGER_RTT.aDown[BufferIndex].Flags = Flags;
@@ -1630,8 +1626,7 @@ int SEGGER_RTT_SetFlagsDownBuffer(unsigned BufferIndex, unsigned Flags) {
 *
 */
 void SEGGER_RTT_Init (void) {
-	lazy_init();
-	//_DoInit();
+	LAZY_INIT();
 }
 
 
@@ -1655,7 +1650,7 @@ int SEGGER_RTT_SetTerminal (char TerminalId) {
   unsigned Avail;
   int r;
   //
-  INIT();
+  LAZY_INIT();
   //
   r = 0;
   ac[0] = 0xFFu;
@@ -1705,7 +1700,7 @@ int SEGGER_RTT_TerminalOut (char TerminalId, const char* s) {
   unsigned              Avail;
   SEGGER_RTT_BUFFER_UP* pRing;
   //
-  INIT();
+  LAZY_INIT();
   //
   // Validate terminal ID.
   //
