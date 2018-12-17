@@ -68,8 +68,6 @@
 	#define RAM_ADDR CONFIG_SRAM_BASE_ADDRESS
 #endif
 
-#define _RTT_SECTION_NAME .rtt
-
 /* Set alignment to CONFIG_ARM_MPU_REGION_MIN_ALIGN_AND_SIZE
  * to make linker section alignment comply with MPU granularity.
  */
@@ -87,6 +85,17 @@ _region_min_align = 4;
 #else
 #define MPU_ALIGN(region_size) \
     . = ALIGN(_region_min_align)
+#endif 
+
+#ifdef CONFIG_SEGGER_RTT_USE_LINKER_SECTION
+#define CONFIG_CUSTOM_SIZE 8 
+#define CONIFG_MULTI_IMAGE_SHARED_MEMORY
+#endif
+
+#ifndef CONIFG_MULTI_IMAGE_SHARED_MEMORY
+#define SHARED_RAM 0
+#else
+#define SHARED_RAM CONFIG_CUSTOM_SIZE
 #endif
 
 MEMORY
@@ -98,8 +107,10 @@ MEMORY
 #ifdef CONFIG_CCM_BASE_ADDRESS
     CCM                   (rw) : ORIGIN = CONFIG_CCM_BASE_ADDRESS, LENGTH = CONFIG_CCM_SIZE * 1K
 #endif
-    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE - 8K
-    RTT                   (wx) : ORIGIN = (RAM_ADDR + RAM_SIZE) - 8K, LENGTH = 8K
+    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE - SHARED_RAM * 1K 
+#ifdef CONIFG_MULTI_IMAGE_SHARED_MEMORY
+    SHARED_SRAM           (wx) : ORIGIN = (RAM_ADDR + RAM_SIZE) - (SHARED_RAM * 1K), LENGTH = SHARED_RAM * 1K
+#endif
     /* Used by and documented in include/linker/intlist.ld */
     IDT_LIST  (wx)      : ORIGIN = (RAM_ADDR + RAM_SIZE), LENGTH = 2K
     }
@@ -415,14 +426,6 @@ SECTIONS
 	__bss_end = ALIGN(4);
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
 	
-    SECTION_PROLOGUE(_RTT_SECTION_NAME,(NOLOAD),)
-    {
-		KERNEL_INPUT_SECTION(.rtt)
-		KERNEL_INPUT_SECTION(".rtt.*")
-		KERNEL_INPUT_SECTION(.rtt.buffer)
-		KERNEL_INPUT_SECTION(".rtt.buffer.*")
-    } GROUP_LINK_IN(RTT)
-
     SECTION_PROLOGUE(_NOINIT_SECTION_NAME,(NOLOAD),)
         {
         /*
@@ -527,12 +530,6 @@ SECTIONS
 #endif
 
 #include <linker/debug-sections.ld>
-	SECTION_PROLOGUE(rtt,,)
-	{
-		KEEP(*(.rtt))
-		KEEP(*(".rtt.*"))
-	} GROUP_DATA_LINK_IN(RTT, RTT)
-
     SECTION_PROLOGUE(.ARM.attributes, 0,)
 	{
 	KEEP(*(.ARM.attributes))
