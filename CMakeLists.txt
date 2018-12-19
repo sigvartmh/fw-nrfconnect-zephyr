@@ -838,7 +838,7 @@ if(CONFIG_KERNEL)
 endif()
 
 set(zephyr_lnk
-  ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${IMAGE}.map
+  ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${KERNEL_MAP_NAME}
   -u_OffsetAbsSyms
   -u_ConfigAbsSyms
   ${LINKERFLAGPREFIX},--whole-archive
@@ -1288,7 +1288,7 @@ if(GKOF OR GKSF)
   )
 
   add_executable(       ${KERNEL_ELF} misc/empty_file.c ${GKSF})
-  target_link_libraries(${KERNEL_ELF} ${GKOF} ${TOPT} ${PROJECT_BINARY_DIR}/linker_pass_final.cmd ${zephyr_lnk} ${CODE_RELOCATION_DEP)
+  target_link_libraries(${KERNEL_ELF} ${GKOF} ${TOPT} ${PROJECT_BINARY_DIR}/linker_pass_final.cmd ${zephyr_lnk} ${CODE_RELOCATION_DEP})
   set_property(TARGET   ${KERNEL_ELF} PROPERTY LINK_DEPENDS ${PROJECT_BINARY_DIR}/linker_pass_final.cmd)
   add_dependencies(     ${KERNEL_ELF} ${ALIGN_SIZING_DEP} ${PRIV_STACK_DEP} ${LINKER_PASS_FINAL_SCRIPT_TARGET})
 else()

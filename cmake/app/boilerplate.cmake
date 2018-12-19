@@ -99,11 +99,10 @@ set(APPLICATION_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 message(STATUS "Using application from '${APPLICATION_SOURCE_DIR}'")
 
 set(__build_dir ${CMAKE_CURRENT_BINARY_DIR}/zephyr)
-message("CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}")
 
 set(PROJECT_BINARY_DIR ${__build_dir})
 
-add_custom_target(code_data_relocation_target)
+add_custom_target(${IMAGE}code_data_relocation_target)
 
 # CMake's 'project' concept has proven to not be very useful for Zephyr
 # due in part to how Zephyr is organized and in part to it not fitting well
@@ -309,6 +308,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
 
   include(${ZEPHYR_BASE}/cmake/version.cmake)
   include(${ZEPHYR_BASE}/cmake/host-tools.cmake)
+  include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
 endif(FIRST_BOILERPLATE_EXECUTION)
 
 
@@ -325,11 +325,10 @@ endif(FIRST_BOILERPLATE_EXECUTION)
 # preprocess DT sources, and then, after we have finished processing
 # both DT and Kconfig we complete the target-specific configuration,
 # and possibly change the toolchain.
-include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
+
 include(${ZEPHYR_BASE}/cmake/kconfig.cmake)
 
 if(FIRST_BOILERPLATE_EXECUTION)
-  include(${ZEPHYR_BASE}/cmake/toolchain.cmake)
   find_package(Git QUIET)
   if(GIT_FOUND)
 	execute_process(COMMAND ${GIT_EXECUTABLE} describe
@@ -405,7 +404,7 @@ Enable Qemu supported ethernet driver like e1000 at drivers/ethernet")
 endif()
 
 zephyr_library_named(app)
-set_property(TARGET app PROPERTY ARCHIVE_OUTPUT_DIRECTORY app)
+set_property(TARGET ${IMAGE}app PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${IMAGE}app)
 
 add_subdirectory(${ZEPHYR_BASE} ${__build_dir})
 
