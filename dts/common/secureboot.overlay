@@ -111,8 +111,10 @@
 	};
 };
 #endif
+#if !CONFIG_IS_SECURE_BOOTLOADER
 / {
 	chosen {
 		zephyr,code-partition = &app_partition;
 	};
 };
+#endif

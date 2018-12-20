@@ -1,3 +1,4 @@
+print(CONFIG_SECURE_BOOT)
 if(NOT DEFINED ZEPHYR_BINARY_DIR)
   message(FATAL_ERROR "A user error has occured.
 cmake was invoked with '${CMAKE_CURRENT_LIST_DIR}' specified as the source directory,
@@ -1338,7 +1339,7 @@ list_append_ifdef(
 list_append_ifdef(
   CONFIG_OUTPUT_DISASSEMBLY
   post_build_commands
-  COMMAND ${CMAKE_OBJDUMP} -S ${KERNEL_ELF_NAME} >  ${KERNEL_LST_NAME}
+  COMMAND ${CMAKE_OBJDUMP} -D ${KERNEL_ELF_NAME} >  ${KERNEL_LST_NAME}
   )
 
 list_append_ifdef(
@@ -1372,7 +1373,17 @@ if(FIRST_BOILERPLATE_EXECUTION)
   # To populate with hex files to merge, do the following:
   #  set_property(GLOBAL APPEND PROPERTY HEX_FILES_TO_MERGE ${my_local_list})
   # Note that the zephyr.hex file will not be included automatically.
-  get_property(HEX_FILES_TO_MERGE GLOBAL PROPERTY HEX_FILES_TO_MERGE)
+  get_property(
+    HEX_FILES_TO_MERGE
+    GLOBAL PROPERTY
+    HEX_FILES_TO_MERGE
+    )
+  get_property(
+    HEX_FILES_TO_MERGE_TARGET
+    GLOBAL PROPERTY
+    HEX_FILES_TO_MERGE_TARGET
+    )
+
   if(HEX_FILES_TO_MERGE)
     # Merge in out-of-tree hex files.
     set(MERGED_HEX_NAME merged.hex)
@@ -1384,7 +1395,9 @@ if(FIRST_BOILERPLATE_EXECUTION)
       ${ZEPHYR_BASE}/scripts/mergehex.py
       -o ${MERGED_HEX_NAME}
       ${HEX_FILES_TO_MERGE}
-      DEPENDS ${HEX_FILES_TO_MERGE} ${logical_target_for_zephyr_elf}
+      DEPENDS
+      ${HEX_FILES_TO_MERGE_TARGET}
+      ${logical_target_for_zephyr_elf}
       )
 
     add_custom_target(mergehex ALL DEPENDS ${MERGED_HEX_NAME})

@@ -326,6 +326,7 @@ endif(FIRST_BOILERPLATE_EXECUTION)
 # both DT and Kconfig we complete the target-specific configuration,
 # and possibly change the toolchain.
 
+message("running for ${IMAGE}")
 include(${ZEPHYR_BASE}/cmake/kconfig.cmake)
 
 if(FIRST_BOILERPLATE_EXECUTION)
