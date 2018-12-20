@@ -468,8 +468,10 @@ endfunction()
 # This API has a constructor like the zephyr_library API has, but it
 # does not have wrappers over the other cmake target functions.
 macro(zephyr_interface_library_named name)
-  add_library(${name} INTERFACE)
-  set_property(GLOBAL APPEND PROPERTY ${IMAGE}ZEPHYR_INTERFACE_LIBS ${name})
+  add_library(${IMAGE}${name} INTERFACE)
+  set_property(GLOBAL APPEND PROPERTY
+    ${IMAGE}ZEPHYR_INTERFACE_LIBS
+    ${IMAGE}${name})
 endmacro()
 
 # 1.3 generate_inc_*
