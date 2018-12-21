@@ -113,10 +113,11 @@ function(zephyr_add_multi_image)
     set_property(GLOBAL PROPERTY MULTI_IMAGE 1)
   else()
     MATH(EXPR incremented_multi_image "${MULTI_IMAGE}+1")
-    set_property(GLOBAL PROPERTY MULTI_IMAGE incremented_multi_image)
+    set_property(GLOBAL PROPERTY MULTI_IMAGE ${incremented_multi_image})
   endif()
   get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
   set_property(GLOBAL PROPERTY IMAGE ${MULTI_IMAGE}_)
+  message("MULTI IMAGE" ${MULTI_IMAGE})
 endfunction()
 
 
