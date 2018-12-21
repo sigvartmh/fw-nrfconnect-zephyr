@@ -89,15 +89,18 @@ _region_min_align = 4;
 
 #ifdef CONFIG_SEGGER_RTT_USE_LINKER_SECTION
 #define CONFIG_CUSTOM_SIZE 8 
-#define CONIFG_MULTI_IMAGE_SHARED_MEMORY
+#define CUSTOM_SECTION 8
+/* #define CONIFG_MULTI_IMAGE_SHARED_MEMORY 
+ */
 #endif
 
+/*
 #ifndef CONIFG_MULTI_IMAGE_SHARED_MEMORY
 #define SHARED_RAM 0
 #else
 #define SHARED_RAM CONFIG_CUSTOM_SIZE
 #endif
-
+*/ 
 MEMORY
     {
     FLASH                 (rx) : ORIGIN = ROM_ADDR, LENGTH = ROM_SIZE
@@ -107,7 +110,7 @@ MEMORY
 #ifdef CONFIG_CCM_BASE_ADDRESS
     CCM                   (rw) : ORIGIN = CONFIG_CCM_BASE_ADDRESS, LENGTH = CONFIG_CCM_SIZE * 1K
 #endif
-    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE - SHARED_RAM * 1K 
+    SRAM                  (wx) : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE /* - SHARED_RAM * 1K */
 #ifdef CONIFG_MULTI_IMAGE_SHARED_MEMORY
     SHARED_SRAM           (wx) : ORIGIN = (RAM_ADDR + RAM_SIZE) - (SHARED_RAM * 1K), LENGTH = SHARED_RAM * 1K
 #endif
