@@ -1201,7 +1201,7 @@ if(CONFIG_CPU_HAS_MPU AND CONFIG_USERSPACE)
     add_executable(       app_sizing_prebuilt misc/empty_file.c)
     target_link_libraries(app_sizing_prebuilt ${TOPT} ${PROJECT_BINARY_DIR}/linker_app_sizing.cmd ${zephyr_lnk} ${CODE_RELOCATION_DEP})
     set_property(TARGET   app_sizing_prebuilt PROPERTY LINK_DEPENDS ${PROJECT_BINARY_DIR}/linker_app_sizing.cmd)
-    add_dependencies(     app_sizing_prebuilt linker_app_sizing_script offsets ${CODE_RELOCATION_DEP} )
+    add_dependencies(     app_sizing_prebuilt linker_app_sizing_script ${OFFSETS_LIB} ${CODE_RELOCATION_DEP} )
 
     add_custom_command(
       TARGET app_sizing_prebuilt
