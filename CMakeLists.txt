@@ -496,7 +496,7 @@ endif()
 add_subdirectory(boards)
 add_subdirectory(ext)
 add_subdirectory(subsys)
-add_subdirectory_ifdef(CONFIG_KERNEL drivers)
+add_subdirectory(drivers)
 add_subdirectory(tests)
 
 set(syscall_macros_h ${ZEPHYR_BINARY_DIR}/include/generated/syscall_macros.h)
@@ -669,7 +669,7 @@ zephyr_include_directories(${TOOLCHAIN_INCLUDES})
 
 zephyr_get_include_directories_for_lang(C ZEPHYR_INCLUDES)
 
-add_subdirectory_ifdef(CONFIG_KERNEL kernel)
+add_subdirectory(kernel)
 
 # Read list content
 get_property(ZEPHYR_LIBS_PROPERTY GLOBAL PROPERTY ${IMAGE}ZEPHYR_LIBS)
@@ -827,9 +827,7 @@ set_property(TARGET
   ${ZEPHYR_INCLUDE_DIRS}
   )
 
-if(CONFIG_KERNEL)
-  set(KERNEL ${IMAGE}kernel)
-endif()
+set(KERNEL kernel)
 
 set(zephyr_lnk
   ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${KERNEL_MAP_NAME}
