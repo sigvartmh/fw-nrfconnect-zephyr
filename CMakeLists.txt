@@ -1,3 +1,14 @@
+# *DOCUMENTATION*
+#
+# Note that this is *NOT* the top-level CMakeLists.txt. That's in the
+# application. See the Application Development Primer documentation
+# for details.
+#
+# To see a list of typical targets execute "make usage"
+# More info can be located in ./README.rst
+# Comments in this file are targeted only to the developer, do not
+# expect to learn how to build the kernel reading this file.
+
 if(NOT DEFINED ZEPHYR_BINARY_DIR)
   message(FATAL_ERROR "A user error has occured.
 cmake was invoked with '${CMAKE_CURRENT_LIST_DIR}' specified as the source directory,
@@ -10,17 +21,6 @@ endif()
 
 project(Zephyr-Kernel VERSION ${PROJECT_VERSION})
 enable_language(C CXX ASM)
-
-# *DOCUMENTATION*
-#
-# Note that this is *NOT* the top-level CMakeLists.txt. That's in the
-# application. See the Application Development Primer documentation
-# for details.
-#
-# To see a list of typical targets execute "make usage"
-# More info can be located in ./README.rst
-# Comments in this file are targeted only to the developer, do not
-# expect to learn how to build the kernel reading this file.
 
 # Verify that the toolchain can compile a dummy file, if it is not we
 # won't be able to test for compatiblity with certain C flags.
@@ -35,15 +35,16 @@ if(NOT PROPERTY_LINKER_SCRIPT_DEFINES)
 endif()
 
 define_property(GLOBAL PROPERTY PROPERTY_OUTPUT_FORMAT BRIEF_DOCS " " FULL_DOCS " ")
-set_property(   GLOBAL PROPERTY PROPERTY_OUTPUT_FORMAT elf32-little${ARCH})
+set_property(   GLOBAL PROPERTY PROPERTY_OUTPUT_FORMAT elf32-little${ARCH}) # BFD format
 
-# ${IMAGE}zephyr_interface is a source-less library that has all the global
+# ${IMAGE}zephyr_interface is a source-less library that encapsulates all the global
 # compiler options needed by all source files. All zephyr libraries,
 # including the library named "zephyr" link with this library to
 # obtain these flags.
+# https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#interface-libraries
 add_library(${IMAGE}zephyr_interface INTERFACE)
 
-# zephyr is a catchall CMake library for source files that can be
+# "zephyr" is a catch-all CMake library for source files that can be
 # built purely with the include paths, defines, and other compiler
 # flags that come with ${IMAGE}zephyr_interface.
 zephyr_library_named(zephyr)
@@ -472,7 +473,7 @@ endfunction()
 # or tests/ as the subdirectories are ordered now.
 #
 # Another example of when the order matters is the reading and writing
-# of properties such as ${IMAGE}ZEPHYR_LIBS or
+# of global properties such as ${IMAGE}ZEPHYR_LIBS or
 # ${IMAGE}GENERATED_KERNEL_OBJECT_FILES.
 #
 # Arch is placed early because it defines important compiler flags
@@ -503,8 +504,8 @@ add_subdirectory_ifdef(CONFIG_KERNEL drivers)
 add_subdirectory(tests)
 
 set(syscall_macros_h ${ZEPHYR_BINARY_DIR}/include/generated/syscall_macros.h)
-
 set(SYSCALL_MACROS_H_TARGET ${IMAGE}syscall_macros_h_target)
+
 add_custom_target(${SYSCALL_MACROS_H_TARGET} DEPENDS ${syscall_macros_h})
 add_custom_command(                       OUTPUT  ${syscall_macros_h}
   COMMAND
@@ -635,6 +636,8 @@ add_custom_command(
   $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:--verbose>
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
+set(DRIVER_VALIDATION_H_TARGET ${IMAGE}driver_validation_h_target)
+add_custom_target(${DRIVER_VALIDATION_H_TARGET} DEPENDS ${DRV_VALIDATION})
 
 set(KOBJ_TYPES_H_TARGET ${IMAGE}kobj_types_h_target)
 include($ENV{ZEPHYR_BASE}/cmake/kobj.cmake)
@@ -667,6 +670,8 @@ add_custom_command(
   -o ${OFFSETS_H_PATH}
   DEPENDS ${OFFSETS_LIB}
 )
+set(OFFSETS_H_TARGET ${IMAGE}offsets_h)
+add_custom_target(${OFFSETS_H_TARGET} DEPENDS ${OFFSETS_H_PATH})
 
 zephyr_include_directories(${TOOLCHAIN_INCLUDES})
 
@@ -833,7 +838,6 @@ set_property(TARGET
 if(CONFIG_KERNEL)
   set(KERNEL ${IMAGE}kernel)
 endif()
-print(ZEPHYR_LIBS_PROPERTY)
 
 set(zephyr_lnk
   ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${KERNEL_MAP_NAME}
@@ -1276,6 +1280,7 @@ if(GKOF OR GKSF)
     ${ALIGN_SIZING_DEP} ${PRIV_STACK_DEP}
     ${ZEPHYR_PREBUILT_EXECUTABLE}
     ${CODE_RELOCATION_DEP}
+    ${ZEPHYR_PREBUILT_EXECUTABLE}
     linker_pass_final.cmd
     ${OFFSETS_H_TARGET}
     )
@@ -1427,13 +1432,12 @@ else()
     COMMAND
     ${CMAKE_COMMAND} -E echo
     "==================================================="
-	"Emulation/Simulation not supported with this board."
+    "Emulation/Simulation not supported with this board."
     "==================================================="
     )
 endif()
 
 add_subdirectory(cmake/flash)
-
 # TODO: Is it a goal to keep this CMakeLists.txt free of
 # 'FIRST_BOILERPLATE_EXECUTION' ?
 if(FIRST_BOILERPLATE_EXECUTION)
@@ -1448,15 +1452,16 @@ if(CONFIG_ASSERT AND (NOT CONFIG_FORCE_NO_ASSERT))
       --- WARNING:  __ASSERT() statements are globally ENABLED ---
       --- The kernel will run more slowly and use more memory  ---
       ------------------------------------------------------------"
-)
+  )
 endif()
 
 if(FIRST_BOILERPLATE_EXECUTION)
   if(CONFIG_BOARD_DEPRECATED)
-	message(WARNING "
+    message(WARNING "
       WARNING:  The board '${BOARD}' is deprecated and will be
       removed in version ${CONFIG_BOARD_DEPRECATED}"
-	  )
+    )
+  endif()
   endif()
 endif()
 
@@ -1466,5 +1471,5 @@ if(CONFIG_X86 AND CONFIG_USERSPACE AND NOT CONFIG_X86_NO_MELTDOWN)
       If your CPU is vulnerable to the Meltdown CPU bug, security of
       supervisor-only memory pages is not guaranteed. This version of Zephyr
       does not contain a fix for this issue."
-)
+  )
 endif()

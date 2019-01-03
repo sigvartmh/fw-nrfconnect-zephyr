@@ -10,10 +10,6 @@
 # Omitting it is permitted, but doing so incurs a maintenance cost as
 # the application must manage upstream changes to this file.
 
-# ${IMAGE}app is a CMake library containing all the application code and is
-# modified by the entry point ${APPLICATION_SOURCE_DIR}/CMakeLists.txt
-# that was specified when cmake was called.
-
 # CMake version 3.8.2 is the real minimum supported version.
 #
 # Unfortunately CMake requires the toplevel CMakeLists.txt file to
@@ -25,6 +21,7 @@
 # invocation in every toplevel CMakeLists.txt.
 cmake_minimum_required(VERSION 3.8.2)
 
+# CMP0002: "Logical target names must be globally unique"
 cmake_policy(SET CMP0002 NEW)
 if(NOT (${CMAKE_VERSION} VERSION_LESS "3.13.0"))
   # Use the old CMake behaviour until 3.13.x is required and the build
@@ -35,12 +32,12 @@ endif()
 if(NOT (${CMAKE_VERSION} VERSION_LESS "3.13.0"))
   # Use the old CMake behaviour until 3.13.x is required and the build
   # scripts have been ported to the new behaviour.
+  # CMP0079: "target_link_libraries() allows use with targets in other directories"
   cmake_policy(SET CMP0079 OLD)
 endif()
 
 get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
 get_property(IMAGE GLOBAL PROPERTY IMAGE)
-
 
 if(MULTI_IMAGE)
   set(FIRST_BOILERPLATE_EXECUTION 0)
@@ -48,21 +45,22 @@ else()
   set(FIRST_BOILERPLATE_EXECUTION 1)
 endif()
 
+
 if(FIRST_BOILERPLATE_EXECUTION)
   set(IMAGE 0_)
   set(IMAGE_ALIAS)
 else()
   set(IMAGE_ALIAS ${IMAGE})
   # Clear the Kconfig namespace of the other image.
-
-  # TODO: How to restore it?
+  # Since the CMake context of each subsequent image is loaded by "add_subdirectory"
+  # the Kconfig namespace is automatically restored by CMake.
   get_cmake_property(names VARIABLES)
   foreach (name ${names})
-	if("${name}" MATCHES "^CONFIG_")
+    if("${name}" MATCHES "^CONFIG_")
       # When a variable starts with 'CONFIG_' it is assumed to be a
       # Kconfig symbol.
-	  unset(${name})
-	endif()
+      unset(${name})
+    endif()
   endforeach()
 endif(FIRST_BOILERPLATE_EXECUTION)
 
@@ -75,6 +73,11 @@ define_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_LIBS
 set_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_LIBS "")
 
 define_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_INTERFACE_LIBS
+    BRIEF_DOCS "Image-global list of all Zephyr interface libs that should be linked in."
+    FULL_DOCS  "Image-global list of all Zephyr interface libs that should be linked in.")
+set_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_INTERFACE_LIBS "")
+
+define_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_OBJECT_FILES
     BRIEF_DOCS "Image-global list of all Zephyr interface libs that should be linked in."
     FULL_DOCS  "Image-global list of all Zephyr interface libs that should be linked in.")
 set_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_INTERFACE_LIBS "")
@@ -107,7 +110,7 @@ add_custom_target(${IMAGE}code_data_relocation_target)
 # CMake's 'project' concept has proven to not be very useful for Zephyr
 # due in part to how Zephyr is organized and in part to it not fitting well
 # with cross compilation.
-# CMake therefore tries to rely as little as possible on project()
+# Zephyr therefore tries to rely as little as possible on project()
 # and its associated variables, e.g. PROJECT_SOURCE_DIR.
 # It is recommended to always use ZEPHYR_BASE instead of PROJECT_SOURCE_DIR
 # when trying to reference ENV${ZEPHYR_BASE}.
@@ -124,20 +127,21 @@ set(AUTOCONF_H ${__build_dir}/include/generated/autoconf.h)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${AUTOCONF_H})
 
 
-# The 'FindPythonInterp' that is distributed with CMake 3.8 has a bug
-# that we need to work around until we upgrade to 3.13. Until then we
-# maintain a patched copy in our repo. Bug:
-# https://github.com/zephyrproject-rtos/zephyr/issues/11103
-set(PythonInterp_FIND_VERSION 3.4)
-set(PythonInterp_FIND_VERSION_COUNT 2)
-set(PythonInterp_FIND_VERSION_MAJOR 3)
-set(PythonInterp_FIND_VERSION_MINOR 4)
-set(PythonInterp_FIND_VERSION_EXACT 0)
-set(PythonInterp_FIND_REQUIRED 1)
-include(${ZEPHYR_BASE}/cmake/backports/FindPythonInterp.cmake)
+#
+# Import more CMake functions and macros
+#
 
+include(CheckCCompilerFlag)
+include(CheckCXXCompilerFlag)
 include(${ZEPHYR_BASE}/cmake/extensions.cmake)
+include(${ZEPHYR_BASE}/cmake/version.cmake)  # depends on hex.cmake
 
+#
+# Find tools
+#
+
+include(${ZEPHYR_BASE}/cmake/python.cmake)
+include(${ZEPHYR_BASE}/cmake/git.cmake)  # depends on version.cmake
 include(${ZEPHYR_BASE}/cmake/ccache.cmake)
 
 if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
@@ -177,39 +181,40 @@ if(FIRST_BOILERPLATE_EXECUTION)
 
   set(board_cli_argument ${cached_board_value}) # Either new or old
   if(board_cli_argument STREQUAL CACHED_BOARD)
-	# We already have a CACHED_BOARD so there is no new input on the CLI
-	unset(board_cli_argument)
+    # We already have a CACHED_BOARD so there is no new input on the CLI
+    unset(board_cli_argument)
   endif()
 
   set(board_app_cmake_lists ${BOARD})
   if(cached_board_value STREQUAL BOARD)
-	# The app build scripts did not set a default, The BOARD we are
-	# reading is the cached value from the CLI
-	unset(board_app_cmake_lists)
+    # The app build scripts did not set a default, The BOARD we are
+    # reading is the cached value from the CLI
+    unset(board_app_cmake_lists)
   endif()
 
   if(CACHED_BOARD)
-	# Warn the user if it looks like he is trying to change the board
-	# without cleaning first
-	if(board_cli_argument)
+    # Warn the user if it looks like he is trying to change the board
+    # without cleaning first
+    if(board_cli_argument)
       if(NOT (CACHED_BOARD STREQUAL board_cli_argument))
-		message(WARNING "The build directory must be cleaned pristinely when changing boards")
-		# TODO: Support changing boards without requiring a clean build
+        message(WARNING "The build directory must be cleaned pristinely when changing boards")
+        # TODO: Support changing boards without requiring a clean build
       endif()
-	endif()
+    endif()
 
-	set(BOARD ${CACHED_BOARD})
+
+    set(BOARD ${CACHED_BOARD})
   elseif(board_cli_argument)
-	set(BOARD ${board_cli_argument})
+    set(BOARD ${board_cli_argument})
 
   elseif(DEFINED ENV{BOARD})
-	set(BOARD $ENV{BOARD})
+    set(BOARD $ENV{BOARD})
 
   elseif(board_app_cmake_lists)
-	set(BOARD ${board_app_cmake_lists})
+    set(BOARD ${board_app_cmake_lists})
 
   else()
-	message(FATAL_ERROR "BOARD is not being defined on the CMake command-line in the environment or by the app.")
+    message(FATAL_ERROR "BOARD is not being defined on the CMake command-line in the environment or by the app.")
   endif()
 
   assert(BOARD "BOARD not set")
@@ -223,29 +228,29 @@ if(FIRST_BOILERPLATE_EXECUTION)
   list(APPEND BOARD_ROOT ${ZEPHYR_BASE})
 
   if(NOT SOC_ROOT)
-	set(SOC_DIR ${ZEPHYR_BASE}/soc)
+    set(SOC_DIR ${ZEPHYR_BASE}/soc)
   else()
-	set(SOC_DIR ${SOC_ROOT}/soc)
+    set(SOC_DIR ${SOC_ROOT}/soc)
   endif()
 
   # Use BOARD to search for a '_defconfig' file.
   # e.g. zephyr/boards/arm/96b_carbon_nrf51/96b_carbon_nrf51_defconfig.
   # When found, use that path to infer the ARCH we are building for.
   foreach(root ${BOARD_ROOT})
-	# NB: find_path will return immediately if the output variable is
-	# already set
-	find_path(BOARD_DIR
-	  NAMES ${BOARD}_defconfig
-	  PATHS ${root}/boards/*/*
-	  NO_DEFAULT_PATH
-	  )
-	if(BOARD_DIR AND NOT (${root} STREQUAL ${ZEPHYR_BASE}))
-	  set(USING_OUT_OF_TREE_BOARD 1)
-	endif()
+    # NB: find_path will return immediately if the output variable is
+    # already set
+    find_path(BOARD_DIR
+      NAMES ${BOARD}_defconfig
+      PATHS ${root}/boards/*/*
+      NO_DEFAULT_PATH
+      )
+    if(BOARD_DIR AND NOT (${root} STREQUAL ${ZEPHYR_BASE}))
+      set(USING_OUT_OF_TREE_BOARD 1)
+    endif()
   endforeach()
 
   if(NOT BOARD_DIR)
-    message("No board name '${BOARD}' found")
+    message("No board named '${BOARD}' found")
     print_usage()
     unset(CACHED_BOARD CACHE)
     message(FATAL_ERROR "Invalid usage")
@@ -253,8 +258,8 @@ if(FIRST_BOILERPLATE_EXECUTION)
 
 
 
-  get_filename_component(BOARD_ARCH_DIR ${BOARD_DIR} DIRECTORY)
-  get_filename_component(BOARD_FAMILY   ${BOARD_DIR} NAME     )
+  get_filename_component(BOARD_ARCH_DIR ${BOARD_DIR}      DIRECTORY)
+  get_filename_component(BOARD_FAMILY   ${BOARD_DIR}      NAME)
   get_filename_component(ARCH           ${BOARD_ARCH_DIR} NAME)
 
   
@@ -300,53 +305,36 @@ alternate .overlay file using this parameter. These settings will override the \
 settings in the board's .dts file. Multiple files may be listed, e.g. \
 DTC_OVERLAY_FILE=\"dts1.overlay dts2.overlay\"")
 
-
+if(FIRST_BOILERPLATE_EXECUTION) 
 if(FIRST_BOILERPLATE_EXECUTION) 
   # Prevent CMake from testing the toolchain
   set(CMAKE_C_COMPILER_FORCED   1)
   set(CMAKE_CXX_COMPILER_FORCED 1)
 
-  include(${ZEPHYR_BASE}/cmake/version.cmake)
   include(${ZEPHYR_BASE}/cmake/host-tools.cmake)
   include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
 endif(FIRST_BOILERPLATE_EXECUTION)
 
 
-# DTS should be close to kconfig because CONFIG_ variables from
-# kconfig and dts should be available at the same time.
-#
-# The DT system uses a C preprocessor for it's code generation needs.
-# This creates an awkward chicken-and-egg problem, because we don't
-# always know exactly which toolchain the user needs until we know
-# more about the target, e.g. after DT and Kconfig.
-#
-# To resolve this we find "some" C toolchain, configure it generically
-# with the minimal amount of configuration needed to have it
-# preprocess DT sources, and then, after we have finished processing
-# both DT and Kconfig we complete the target-specific configuration,
-# and possibly change the toolchain.
+  # DTS should be close to kconfig because CONFIG_ variables from
+  # kconfig and dts should be available at the same time.
+  #
+  # The DT system uses a C preprocessor for it's code generation needs.
+  # This creates an awkward chicken-and-egg problem, because we don't
+  # always know exactly which toolchain the user needs until we know
+  # more about the target, e.g. after DT and Kconfig.
+  #
+  # To resolve this we find "some" C toolchain, configure it generically
+  # with the minimal amount of configuration needed to have it
+  # preprocess DT sources, and then, after we have finished processing
+  # both DT and Kconfig we complete the target-specific configuration,
+  # and possibly change the toolchain.
+  include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
+endif(FIRST_BOILERPLATE_EXECUTION)
 
 include(${ZEPHYR_BASE}/cmake/kconfig.cmake)
 
-if(FIRST_BOILERPLATE_EXECUTION)
-  find_package(Git QUIET)
-  if(GIT_FOUND)
-	execute_process(COMMAND ${GIT_EXECUTABLE} describe
-      WORKING_DIRECTORY ${ZEPHYR_BASE}
-      OUTPUT_VARIABLE BUILD_VERSION
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_STRIP_TRAILING_WHITESPACE
-      ERROR_VARIABLE stderr
-      RESULT_VARIABLE return_code
-      )
-	if(return_code)
-      message(STATUS "git describe failed: ${stderr}; ${KERNEL_VERSION_STRING} will be used instead")
-	elseif(CMAKE_VERBOSE_MAKEFILE)
-      message(STATUS "git describe stderr: ${stderr}")
-	endif()
-  endif()
-
-  set(SOC_NAME ${CONFIG_SOC})
+set(SOC_NAME   ${CONFIG_SOC})
   set(SOC_SERIES ${CONFIG_SOC_SERIES})
   set(SOC_FAMILY ${CONFIG_SOC_FAMILY})
 
@@ -355,7 +343,6 @@ if(FIRST_BOILERPLATE_EXECUTION)
   else()
 	set(SOC_PATH ${SOC_FAMILY}/${SOC_SERIES})
   endif()
-endif()
 include(${ZEPHYR_BASE}/cmake/dts.cmake)
 
 include(${ZEPHYR_BASE}/cmake/target_toolchain.cmake)
@@ -389,20 +376,24 @@ if(CONFIG_QEMU_TARGET)
   if(CONFIG_NET_QEMU_ETHERNET)
     if(CONFIG_ETH_NIC_MODEL)
       list(APPEND QEMU_FLAGS_${ARCH}
-	-nic tap,model=${CONFIG_ETH_NIC_MODEL},script=no,downscript=no,ifname=zeth
-	)
+        -nic tap,model=${CONFIG_ETH_NIC_MODEL},script=no,downscript=no,ifname=zeth
+      )
     else()
-      message(FATAL_ERROR
-	"No Qemu ethernet driver configured!
-Enable Qemu supported ethernet driver like e1000 at drivers/ethernet")
+      message(FATAL_ERROR "
+        No Qemu ethernet driver configured!
+        Enable Qemu supported ethernet driver like e1000 at drivers/ethernet"
+      )
     endif()
   else()
     list(APPEND QEMU_FLAGS_${ARCH}
       -net none
-      )
+    )
   endif()
 endif()
 
+# "app" is a CMake library containing all the application code and is
+# modified by the entry point ${APPLICATION_SOURCE_DIR}/CMakeLists.txt
+# that was specified when cmake was called.
 zephyr_library_named(app)
 set_property(TARGET ${IMAGE}app PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${IMAGE}app)
 
