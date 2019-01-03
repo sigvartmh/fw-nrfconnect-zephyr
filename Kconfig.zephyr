@@ -49,7 +49,7 @@ menu "Build and Link Features"
 menu "Linker Options"
 
 config KERNEL
-	bool "Whyyy"
+	bool "Include Zephyr kernel"
 	default y
 
 choice

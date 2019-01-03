@@ -499,11 +499,8 @@ set(NRF_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../nrf)
 if(EXISTS ${NRF_DIR})
 	add_subdirectory(${NRF_DIR} ${PROJECT_BINARY_DIR}/nrf)
 endif()
-# TODO do this in kconfig instead
-if(CONFIG_KERNEL)
-add_subdirectory(drivers)
+add_subdirectory_ifdef(CONFIG_KERNEL drivers)
 add_subdirectory(tests)
-endif()
 
 set(syscall_macros_h ${ZEPHYR_BINARY_DIR}/include/generated/syscall_macros.h)
 

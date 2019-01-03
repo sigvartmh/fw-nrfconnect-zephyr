@@ -528,13 +528,11 @@ config SYS_CLOCK_HW_CYCLES_PER_SEC
 	  system clock (in Hz). This option is set by the SOC's or board's Kconfig file
 	  and the user should generally avoid modifying it via the menu configuration.
 
-if KERNEL
 config SYS_CLOCK_EXISTS
 	def_bool (SYS_CLOCK_TICKS_PER_SEC != 0)
 	# omit prompt to signify a "hidden" option
 	help
 	  This option specifies that the kernel lacks timer support
-endif
 
 config XIP
 	bool "Execute in place"
