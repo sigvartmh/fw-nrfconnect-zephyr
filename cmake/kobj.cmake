@@ -11,7 +11,6 @@ function(gen_kobj gen_dir_out)
 
   file(MAKE_DIRECTORY ${gen_dir})
 
-  add_custom_target(${KOBJ_TYPES_H_TARGET} DEPENDS ${KOBJ_TYPES} ${KOBJ_OTYPE})
   add_custom_command(
     OUTPUT ${KOBJ_TYPES} ${KOBJ_OTYPE}
     COMMAND
@@ -26,4 +25,5 @@ function(gen_kobj gen_dir_out)
   add_custom_target(${KOBJ_TYPES_H_TARGET} DEPENDS ${KOBJ_TYPES} ${KOBJ_OTYPE})
 
   set(${gen_dir_out} ${gen_dir} PARENT_SCOPE)
+
 endfunction ()

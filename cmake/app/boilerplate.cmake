@@ -23,11 +23,6 @@ cmake_minimum_required(VERSION 3.8.2)
 
 # CMP0002: "Logical target names must be globally unique"
 cmake_policy(SET CMP0002 NEW)
-if(NOT (${CMAKE_VERSION} VERSION_LESS "3.13.0"))
-  # Use the old CMake behaviour until 3.13.x is required and the build
-  # scripts have been ported to the new behaviour.
-  cmake_policy(SET CMP0079 OLD)
-endif()
 
 if(NOT (${CMAKE_VERSION} VERSION_LESS "3.13.0"))
   # Use the old CMake behaviour until 3.13.x is required and the build
@@ -75,19 +70,18 @@ define_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_INTERFACE_LIBS
 set_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_INTERFACE_LIBS "")
 
 define_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_OBJECT_FILES
-    BRIEF_DOCS "Image-global list of all Zephyr interface libs that should be linked in."
-    FULL_DOCS  "Image-global list of all Zephyr interface libs that should be linked in.")
-set_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_INTERFACE_LIBS "")
-
-define_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_OBJECT_FILES
   BRIEF_DOCS "Object files that are generated after Zephyr has been linked once."
-  FULL_DOCS  "Object files that are generated after Zephyr has been linked once."
+  FULL_DOCS "\
+Object files that are generated after Zephyr has been linked once.\
+May include mmu tables, etc."
   )
 set_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_OBJECT_FILES "")
 
 define_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_SOURCE_FILES
   BRIEF_DOCS "Source files that are generated after Zephyr has been linked once."
-  FULL_DOCS  "Source files that are generated after Zephyr has been linked once."
+  FULL_DOCS "\
+Source files that are generated after Zephyr has been linked once.\
+May include isr_tables.c etc."
   )
 set_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_SOURCE_FILES "")
 
@@ -150,7 +144,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
     pristine
     COMMAND ${CMAKE_COMMAND} -P ${ZEPHYR_BASE}/cmake/pristine.cmake
     # Equivalent to rm -rf build/*
-	)
+  )
 
   # The BOARD can be set by 3 sources. Through environment variables,
   # through the cmake CLI, and through CMakeLists.txt.
@@ -251,8 +245,6 @@ if(FIRST_BOILERPLATE_EXECUTION)
     message(FATAL_ERROR "Invalid usage")
   endif()
 
-
-
   get_filename_component(BOARD_ARCH_DIR ${BOARD_DIR}      DIRECTORY)
   get_filename_component(BOARD_FAMILY   ${BOARD_DIR}      NAME)
   get_filename_component(ARCH           ${BOARD_ARCH_DIR} NAME)
@@ -343,14 +335,14 @@ endif(FIRST_BOILERPLATE_EXECUTION)
 include(${ZEPHYR_BASE}/cmake/kconfig.cmake)
 
 set(SOC_NAME   ${CONFIG_SOC})
-  set(SOC_SERIES ${CONFIG_SOC_SERIES})
-  set(SOC_FAMILY ${CONFIG_SOC_FAMILY})
+set(SOC_SERIES ${CONFIG_SOC_SERIES})
+set(SOC_FAMILY ${CONFIG_SOC_FAMILY})
 
-  if("${SOC_SERIES}" STREQUAL "")
-	set(SOC_PATH ${SOC_NAME})
-  else()
-	set(SOC_PATH ${SOC_FAMILY}/${SOC_SERIES})
-  endif()
+if("${SOC_SERIES}" STREQUAL "")
+  set(SOC_PATH ${SOC_NAME})
+else()
+  set(SOC_PATH ${SOC_FAMILY}/${SOC_SERIES})
+endif()
 include(${ZEPHYR_BASE}/cmake/dts.cmake)
 
 include(${ZEPHYR_BASE}/cmake/target_toolchain.cmake)

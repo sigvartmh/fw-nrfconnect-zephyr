@@ -532,7 +532,7 @@ config SYS_CLOCK_EXISTS
 	def_bool (SYS_CLOCK_TICKS_PER_SEC != 0)
 	# omit prompt to signify a "hidden" option
 	help
-	  This option specifies that the kernel lacks timer support
+	  This option specifies that the kernel lacks timer support.
 
 config XIP
 	bool "Execute in place"

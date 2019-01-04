@@ -625,8 +625,6 @@ add_custom_command(OUTPUT include/generated/syscall_dispatch.c ${syscall_list_h}
   )
 
 set(DRV_VALIDATION ${PROJECT_BINARY_DIR}/include/generated/driver-validation.h)
-set(DRIVER_VALIDATION_H_TARGET ${IMAGE}driver_validation_h_target)
-add_custom_target(${DRIVER_VALIDATION_H_TARGET} DEPENDS ${DRV_VALIDATION})
 add_custom_command(
   OUTPUT ${DRV_VALIDATION}
   COMMAND
@@ -661,8 +659,6 @@ add_dependencies(     ${OFFSETS_LIB}
   ${KOBJ_TYPES_H_TARGET}
   )
 
-set(OFFSETS_H_TARGET ${IMAGE}offsets_h)
-add_custom_target(${OFFSETS_H_TARGET} DEPENDS ${OFFSETS_H_PATH})
 add_custom_command(
   OUTPUT ${OFFSETS_H_PATH}
   COMMAND ${PYTHON_EXECUTABLE} ${ZEPHYR_BASE}/scripts/gen_offset_header.py
@@ -1275,7 +1271,6 @@ if(GKOF OR GKSF)
     ${LINKER_PASS_FINAL_SCRIPT_TARGET}
     DEPENDS
     ${ALIGN_SIZING_DEP} ${PRIV_STACK_DEP}
-    ${ZEPHYR_PREBUILT_EXECUTABLE}
     ${CODE_RELOCATION_DEP}
     ${ZEPHYR_PREBUILT_EXECUTABLE}
     linker_pass_final.cmd
@@ -1338,7 +1333,7 @@ list_append_ifdef(
 list_append_ifdef(
   CONFIG_OUTPUT_DISASSEMBLY
   post_build_commands
-  COMMAND ${CMAKE_OBJDUMP} -D ${KERNEL_ELF_NAME} >  ${KERNEL_LST_NAME}
+  COMMAND ${CMAKE_OBJDUMP} -S ${KERNEL_ELF_NAME} >  ${KERNEL_LST_NAME}
   )
 
 list_append_ifdef(
@@ -1451,7 +1446,6 @@ if(CONFIG_BOARD_DEPRECATED)
   WARNING:  The board '${BOARD}' is deprecated and will be
   removed in version ${CONFIG_BOARD_DEPRECATED}"
   )
-  endif()
   endif()
 
 if(CONFIG_X86 AND CONFIG_USERSPACE AND NOT CONFIG_X86_NO_MELTDOWN)
