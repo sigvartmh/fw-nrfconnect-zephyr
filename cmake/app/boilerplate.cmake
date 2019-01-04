@@ -59,9 +59,6 @@ else()
   endforeach()
 endif(FIRST_BOILERPLATE_EXECUTION)
 
-# TODO: These are global properties, so they must be converted to
-# image-global because they could be de-referenced in generator
-# expressions.
 define_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_LIBS
     BRIEF_DOCS "Image-global list of all Zephyr CMake libs that should be linked in"
     FULL_DOCS  "Image-global list of all Zephyr CMake libs that should be linked in")
@@ -88,8 +85,6 @@ May include isr_tables.c etc."
   )
 set_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_SOURCE_FILES "")
 
-# TODO: This might be okay as mutable global, we'll see.
-# TODO: Is it safe to take this out of the cache?
 set(APPLICATION_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(APPLICATION_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -254,25 +249,28 @@ if(FIRST_BOILERPLATE_EXECUTION)
   get_filename_component(BOARD_FAMILY   ${BOARD_DIR}      NAME)
   get_filename_component(ARCH           ${BOARD_ARCH_DIR} NAME)
 
-
+  if(CONF_FILE)
+    #   # CONF_FILE has either been specified on the cmake CLI or is already
+    #   # in the CMakeCache.txt. This has precedence over the environment
+    #   # variable CONF_FILE and the default prj.conf
+  elseif(DEFINED ENV{CONF_FILE})
+    set(CONF_FILE $ENV{CONF_FILE})
+  elseif(COMMAND set_conf_file)
+    set_conf_file()
+  elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+  elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj.conf)
+  endif()
 endif(FIRST_BOILERPLATE_EXECUTION)
 
-# if(CONF_FILE)
-#   # CONF_FILE has either been specified on the cmake CLI or is already
-#   # in the CMakeCache.txt. This has precedence over the environment
-#   # variable CONF_FILE and the default prj.conf
-# elseif(DEFINED ENV{CONF_FILE})
-#   set(CONF_FILE $ENV{CONF_FILE})
-
-# TODO: two images can't set this as this is organized today.
-if(COMMAND set_conf_file)
-  set_conf_file()
-
-elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
-  set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
-
-elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj.conf)
-  set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj.conf)
+if (NOT FIRST_BOILERPLATE_EXECUTION)
+  unset(CONF_FILE)
+  if(EXISTS   ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+  elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj.conf)
+  endif()
 endif()
 
 set(CONF_FILE ${CONF_FILE} CACHE STRING "If desired, you can build the application using\
