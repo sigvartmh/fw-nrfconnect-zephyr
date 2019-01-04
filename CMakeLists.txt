@@ -677,6 +677,7 @@ zephyr_include_directories(${TOOLCHAIN_INCLUDES})
 
 zephyr_get_include_directories_for_lang(C ZEPHYR_INCLUDES)
 
+set(KERNEL_LIBRARY ${IMAGE}kernel)
 add_subdirectory(kernel)
 
 # Read list content
@@ -712,7 +713,7 @@ if(CONFIG_APPLICATION_MEMORY)
   # certain items.
   set(kernel_object_file_list
     ${ZEPHYR_LIBS_PROPERTY}
-    ${IMAGE}kernel
+    ${KERNEL_LIBRARY}
     )
   list(
     REMOVE_ITEM
@@ -835,10 +836,6 @@ set_property(TARGET
   ${ZEPHYR_INCLUDE_DIRS}
   )
 
-if(CONFIG_KERNEL)
-  set(KERNEL ${IMAGE}kernel)
-endif()
-
 set(zephyr_lnk
   ${LINKERFLAGPREFIX},-Map=${PROJECT_BINARY_DIR}/${KERNEL_MAP_NAME}
   -u_OffsetAbsSyms
@@ -846,7 +843,7 @@ set(zephyr_lnk
   ${LINKERFLAGPREFIX},--whole-archive
   ${ZEPHYR_LIBS_PROPERTY}
   ${LINKERFLAGPREFIX},--no-whole-archive
-  ${KERNEL}
+  ${KERNEL_LIBRARY}
   ${OFFSETS_O_PATH}
   ${LIB_INCLUDE_DIR}
   -L${PROJECT_BINARY_DIR}
@@ -1165,7 +1162,7 @@ if(CONFIG_CPU_HAS_MPU AND CONFIG_USERSPACE)
         add_custom_target(
           ${APP_SMEM_DEP} ALL
           DEPENDS app
-          ${IMAGE}kernel
+          ${KERNEL_LIBRARY}
          )
 
         add_custom_command(
@@ -1438,12 +1435,6 @@ else()
 endif()
 
 add_subdirectory(cmake/flash)
-# TODO: Is it a goal to keep this CMakeLists.txt free of
-# 'FIRST_BOILERPLATE_EXECUTION' ?
-if(FIRST_BOILERPLATE_EXECUTION)
-  add_subdirectory(cmake/usage)
-endif()
-
 add_subdirectory(cmake/reports)
 
 if(CONFIG_ASSERT AND (NOT CONFIG_FORCE_NO_ASSERT))
@@ -1455,15 +1446,13 @@ if(CONFIG_ASSERT AND (NOT CONFIG_FORCE_NO_ASSERT))
   )
 endif()
 
-if(FIRST_BOILERPLATE_EXECUTION)
-  if(CONFIG_BOARD_DEPRECATED)
-    message(WARNING "
-      WARNING:  The board '${BOARD}' is deprecated and will be
-      removed in version ${CONFIG_BOARD_DEPRECATED}"
-    )
+if(CONFIG_BOARD_DEPRECATED)
+  message(WARNING "
+  WARNING:  The board '${BOARD}' is deprecated and will be
+  removed in version ${CONFIG_BOARD_DEPRECATED}"
+  )
   endif()
   endif()
-endif()
 
 if(CONFIG_X86 AND CONFIG_USERSPACE AND NOT CONFIG_X86_NO_MELTDOWN)
   message(WARNING "

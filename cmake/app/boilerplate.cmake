@@ -64,9 +64,6 @@ else()
   endforeach()
 endif(FIRST_BOILERPLATE_EXECUTION)
 
-# TODO: These are global properties, so they must be converted to
-# image-global because they could be de-referenced in generator
-# expressions.
 define_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_LIBS
     BRIEF_DOCS "Image-global list of all Zephyr CMake libs that should be linked in"
     FULL_DOCS  "Image-global list of all Zephyr CMake libs that should be linked in")
@@ -94,8 +91,6 @@ define_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_SOURCE_FILES
   )
 set_property(GLOBAL PROPERTY ${IMAGE}GENERATED_KERNEL_SOURCE_FILES "")
 
-# TODO: This might be okay as mutable global, we'll see.
-# TODO: Is it safe to take this out of the cache?
 set(APPLICATION_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(APPLICATION_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -262,59 +257,11 @@ if(FIRST_BOILERPLATE_EXECUTION)
   get_filename_component(BOARD_FAMILY   ${BOARD_DIR}      NAME)
   get_filename_component(ARCH           ${BOARD_ARCH_DIR} NAME)
 
-  
-endif(FIRST_BOILERPLATE_EXECUTION)
-
-# if(CONF_FILE)
-#   # CONF_FILE has either been specified on the cmake CLI or is already
-#   # in the CMakeCache.txt. This has precedence over the environment
-#   # variable CONF_FILE and the default prj.conf
-# elseif(DEFINED ENV{CONF_FILE})
-#   set(CONF_FILE $ENV{CONF_FILE})
-
-# TODO: two images can't set this as this is organized today.
-if(COMMAND set_conf_file)
-  set_conf_file()
-
-elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
-  set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
-
-elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj.conf)
-  set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj.conf)
-endif()
-
-set(CONF_FILE ${CONF_FILE} CACHE STRING "If desired, you can build the application using\
-the configuration settings specified in an alternate .conf file using this parameter. \
-These settings will override the settings in the application’s .config file or its default .conf file.\
-Multiple files may be listed, e.g. CONF_FILE=\"prj1.conf prj2.conf\"")
-
-# TODO: Support setting overlay's
-# if(DTC_OVERLAY_FILE)
-#   # DTC_OVERLAY_FILE has either been specified on the cmake CLI or is already
-#   # in the CMakeCache.txt. This has precedence over the environment
-#   # variable DTC_OVERLAY_FILE
-# elseif(DEFINED ENV{DTC_OVERLAY_FILE})
-#   set(DTC_OVERLAY_FILE $ENV{DTC_OVERLAY_FILE})
-if(EXISTS          ${APPLICATION_SOURCE_DIR}/${BOARD}.overlay)
-  set(DTC_OVERLAY_FILE ${APPLICATION_SOURCE_DIR}/${BOARD}.overlay)
-endif()
-
-set(DTC_OVERLAY_FILE ${DTC_OVERLAY_FILE} CACHE STRING "If desired, you can \
-build the application using the DT configuration settings specified in an \
-alternate .overlay file using this parameter. These settings will override the \
-settings in the board's .dts file. Multiple files may be listed, e.g. \
-DTC_OVERLAY_FILE=\"dts1.overlay dts2.overlay\"")
-
-if(FIRST_BOILERPLATE_EXECUTION) 
-if(FIRST_BOILERPLATE_EXECUTION) 
   # Prevent CMake from testing the toolchain
   set(CMAKE_C_COMPILER_FORCED   1)
   set(CMAKE_CXX_COMPILER_FORCED 1)
-
+  
   include(${ZEPHYR_BASE}/cmake/host-tools.cmake)
-  include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
-endif(FIRST_BOILERPLATE_EXECUTION)
-
 
   # DTS should be close to kconfig because CONFIG_ variables from
   # kconfig and dts should be available at the same time.
@@ -329,6 +276,67 @@ endif(FIRST_BOILERPLATE_EXECUTION)
   # preprocess DT sources, and then, after we have finished processing
   # both DT and Kconfig we complete the target-specific configuration,
   # and possibly change the toolchain.
+  include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
+
+  string(REPLACE ";" " " BOARD_ROOT_SPACE_SEPARATED "${BOARD_ROOT}")
+  # NB: The reason it is 'usage' and not help is that CMake already
+  # defines a target 'help'
+  add_custom_target(
+    usage
+    ${CMAKE_COMMAND}
+    -DBOARD_ROOT_SPACE_SEPARATED=${BOARD_ROOT_SPACE_SEPARATED}
+    -P ${ZEPHYR_BASE}/cmake/usage/usage.cmake
+    )
+
+  if(CONF_FILE)
+    #   # CONF_FILE has either been specified on the cmake CLI or is already
+    #   # in the CMakeCache.txt. This has precedence over the environment
+    #   # variable CONF_FILE and the default prj.conf
+  elseif(DEFINED ENV{CONF_FILE})
+    set(CONF_FILE $ENV{CONF_FILE})
+  elseif(COMMAND set_conf_file)
+    set_conf_file()
+  elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+  elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj.conf)
+  endif()
+
+  if(DTC_OVERLAY_FILE)
+    #   # DTC_OVERLAY_FILE has either been specified on the cmake CLI or is already
+    #   # in the CMakeCache.txt. This has precedence over the environment
+    #   # variable DTC_OVERLAY_FILE
+  elseif(DEFINED ENV{DTC_OVERLAY_FILE})
+    set(DTC_OVERLAY_FILE $ENV{DTC_OVERLAY_FILE})
+  elseif(EXISTS          ${APPLICATION_SOURCE_DIR}/${BOARD}.overlay)
+    set(DTC_OVERLAY_FILE ${APPLICATION_SOURCE_DIR}/${BOARD}.overlay)
+  endif()
+else() # NOT FIRST_BOILERPLATE_EXECUTION
+  unset(CONF_FILE)
+  if(EXISTS       ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
+  elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/prj.conf)
+    set(CONF_FILE ${APPLICATION_SOURCE_DIR}/prj.conf)
+  endif()
+
+  unset(DTC_OVERLAY_FILE)
+  if(EXISTS              ${APPLICATION_SOURCE_DIR}/${BOARD}.overlay)
+    set(DTC_OVERLAY_FILE ${APPLICATION_SOURCE_DIR}/${BOARD}.overlay)
+  endif()
+endif()
+
+set(CONF_FILE ${CONF_FILE} CACHE STRING "If desired, you can build the application using\
+the configuration settings specified in an alternate .conf file using this parameter. \
+These settings will override the settings in the application’s .config file or its default .conf file.\
+Multiple files may be listed, e.g. CONF_FILE=\"prj1.conf prj2.conf\"")
+
+set(DTC_OVERLAY_FILE ${DTC_OVERLAY_FILE} CACHE STRING "If desired, you can \
+build the application using the DT configuration settings specified in an \
+alternate .overlay file using this parameter. These settings will override the \
+settings in the board's .dts file. Multiple files may be listed, e.g. \
+DTC_OVERLAY_FILE=\"dts1.overlay dts2.overlay\"")
+
+if(FIRST_BOILERPLATE_EXECUTION) 
   include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
 endif(FIRST_BOILERPLATE_EXECUTION)
 
