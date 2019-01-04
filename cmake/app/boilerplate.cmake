@@ -387,6 +387,20 @@ set_property(TARGET ${IMAGE}app PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${IMAGE}app)
 
 add_subdirectory(${ZEPHYR_BASE} ${__build_dir})
 
+if(FIRST_BOILERPLATE_EXECUTION)
+  string(REPLACE ";" " " BOARD_ROOT_SPACE_SEPARATED "${BOARD_ROOT}")
+
+  add_custom_target(
+    usage
+    ${CMAKE_COMMAND}
+    -DBOARD_ROOT_SPACE_SEPARATED=${BOARD_ROOT_SPACE_SEPARATED}
+    -P ${ZEPHYR_BASE}/cmake/usage/usage.cmake
+    )
+
+  # NB: The reason it is 'usage' and not help is that CMake already
+  # defines a target 'help'
+endif()
+
 #TODO: Everything below here.
 
 # Link 'app' with the Zephyr interface libraries.

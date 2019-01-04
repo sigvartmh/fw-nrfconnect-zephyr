@@ -1427,12 +1427,6 @@ else()
 endif()
 
 add_subdirectory(cmake/flash)
-# TODO: Is it a goal to keep this CMakeLists.txt free of
-# 'FIRST_BOILERPLATE_EXECUTION' ?
-if(FIRST_BOILERPLATE_EXECUTION)
-  add_subdirectory(cmake/usage)
-endif()
-
 add_subdirectory(cmake/reports)
 
 if(CONFIG_ASSERT AND (NOT CONFIG_FORCE_NO_ASSERT))
@@ -1444,14 +1438,12 @@ if(CONFIG_ASSERT AND (NOT CONFIG_FORCE_NO_ASSERT))
   )
 endif()
 
-if(FIRST_BOILERPLATE_EXECUTION)
-  if(CONFIG_BOARD_DEPRECATED)
-    message(WARNING "
-      WARNING:  The board '${BOARD}' is deprecated and will be
-      removed in version ${CONFIG_BOARD_DEPRECATED}"
-    )
+if(CONFIG_BOARD_DEPRECATED)
+  message(WARNING "
+  WARNING:  The board '${BOARD}' is deprecated and will be
+  removed in version ${CONFIG_BOARD_DEPRECATED}"
+  )
   endif()
-endif()
 
 if(CONFIG_X86 AND CONFIG_USERSPACE AND NOT CONFIG_X86_NO_MELTDOWN)
   message(WARNING "
