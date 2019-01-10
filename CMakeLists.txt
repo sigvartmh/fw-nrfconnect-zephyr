@@ -1380,6 +1380,17 @@ list_append_ifdef(
   COMMAND ${CMAKE_COMMAND} -E copy ${KERNEL_ELF_NAME}    ${KERNEL_EXE_NAME}
   )
 
+get_property(
+  extra_post_build_commands
+  GLOBAL PROPERTY
+  extra_post_build_commands
+  )
+
+list(APPEND
+  post_build_commands
+  ${extra_post_build_commands}
+  )
+
 add_custom_command(
   TARGET ${logical_target_for_zephyr_elf}
   POST_BUILD
