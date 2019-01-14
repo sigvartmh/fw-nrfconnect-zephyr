@@ -417,6 +417,14 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
 
   if (${linker_output_name} MATCHES "^linker_pass_final$")
     set(linker_pass_define -DLINKER_PASS2)
+  elseif (${linker_output_name} MATCHES "^linker$")
+    if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.json)
+      set(partition_manager_target PARTITION_MANAGER_TARGET)
+      set(lol -DUSE_PARTITION_MANAGER)
+      # TODO Do ${IMAGE} on PROPERTY_LINKER_SCRIPT_DEFINES to avoid having
+      # custom variable here.
+      #      set_property(GLOBAL APPEND PROPERTY PROPERTY_LINKER_SCRIPT_DEFINES -DUSE_PARTITION_MANAGER)
+    endif()
   else()
     set(linker_pass_define "")
   endif()
@@ -443,7 +451,7 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
 
   set(${output_variable}
     OUTPUT ${linker_cmd_file_name}
-    DEPENDS ${LINKER_SCRIPT}
+    DEPENDS ${LINKER_SCRIPT} ${partition_manager_target}
     ${linker_script_dep}
     COMMAND ${CMAKE_C_COMPILER}
     -x assembler-with-cpp
@@ -453,6 +461,7 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
     ${current_includes}
     ${current_defines}
     ${linker_pass_define}
+    ${lol}
     -E ${LINKER_SCRIPT}
     -P # Prevent generation of debug `#line' directives.
     -o ${linker_cmd_file_name}

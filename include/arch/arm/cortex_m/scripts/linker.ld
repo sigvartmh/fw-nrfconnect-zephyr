@@ -17,7 +17,9 @@
 #include <autoconf.h>
 #include <linker/sections.h>
 #include <generated_dts_board.h>
-
+#ifdef USE_PARTITION_MANAGER
+#include <override.h>
+#endif
 #include <linker/linker-defs.h>
 #include <linker/linker-tool.h>
 
@@ -39,7 +41,6 @@
 #if !defined(SKIP_TO_KINETIS_FLASH_CONFIG)
   #define SKIP_TO_KINETIS_FLASH_CONFIG
 #endif
-
 #define ROM_ADDR (CONFIG_FLASH_BASE_ADDRESS + CONFIG_FLASH_LOAD_OFFSET)
 #ifdef CONFIG_TI_CCFG_PRESENT
   #define CCFG_SIZE 88
