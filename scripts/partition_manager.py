@@ -44,17 +44,17 @@ def generate_override(input_files, output_file_name):
     adr_map = dict()
     for f in input_files:
         img_conf = json.load(f)
-        img_conf['out_path'] = path.join(path.dirname(f.name), output_file_name)
+        img_conf[list(img_conf.keys())[0]]['out_path'] = path.join(path.dirname(f.name), output_file_name)
         adr_map.update(img_conf)
 
     resolve_dependincies(adr_map)
 
     # TODO check for collisions
 
-    for img_conf in adr_map:
-        open(img_conf['out_path'], 'w').write('''\
+    for img, conf in adr_map.items():
+        open(conf['out_path'], 'w').write('''\
 #undef CONFIG_FLASH_BASE_ADDRESS
-#define CONFIG_FLASH_BASE_ADDRESS %s''' % img_conf['address'])
+#define CONFIG_FLASH_BASE_ADDRESS %s''' % conf['address'])
 
 
 def parse_args():
