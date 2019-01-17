@@ -3,7 +3,7 @@
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/kconfig/include/generated)
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/kconfig/include/config)
 
-if(KCONFIG_ROOT)
+if(${IMAGE}KCONFIG_ROOT)
   # KCONFIG_ROOT has either been specified as a CMake variable or is
   # already in the CMakeCache.txt. This has precedence.
 elseif(EXISTS   ${APPLICATION_SOURCE_DIR}/Kconfig)
@@ -29,12 +29,12 @@ set(ENV{PYTHON_EXECUTABLE} ${PYTHON_EXECUTABLE})
 set(ENV{ARCH}      ${ARCH})
 set(ENV{BOARD_DIR} ${BOARD_DIR})
 set(ENV{SOC_DIR}   ${SOC_DIR})
-set(ENV{PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR})
+set(ENV{CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR})
 set(ENV{ARCH_DIR}   ${ARCH_DIR})
 set(ENV{GENERATED_DTS_BOARD_CONF} ${GENERATED_DTS_BOARD_CONF})
 
 add_custom_target(
-  menuconfig
+  ${IMAGE}menuconfig
   ${CMAKE_COMMAND} -E env
   PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
   srctree=${ZEPHYR_BASE}
@@ -43,7 +43,7 @@ add_custom_target(
   ARCH=$ENV{ARCH}
   BOARD_DIR=$ENV{BOARD_DIR}
   SOC_DIR=$ENV{SOC_DIR}
-  PROJECT_BINARY_DIR=$ENV{PROJECT_BINARY_DIR}
+  CMAKE_BINARY_DIR=$ENV{CMAKE_BINARY_DIR}
   ZEPHYR_TOOLCHAIN_VARIANT=${ZEPHYR_TOOLCHAIN_VARIANT}
   ARCH_DIR=$ENV{ARCH_DIR}
   GENERATED_DTS_BOARD_CONF=$ENV{GENERATED_DTS_BOARD_CONF}
@@ -170,7 +170,7 @@ foreach(merge_config_input ${merge_config_files} ${DOTCONFIG})
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${merge_config_input})
 endforeach()
 
-add_custom_target(config-sanitycheck DEPENDS ${DOTCONFIG})
+add_custom_target(${IMAGE}config-sanitycheck DEPENDS ${DOTCONFIG})
 
 # Remove the CLI Kconfig symbols from the namespace and
 # CMakeCache.txt. If the symbols end up in DOTCONFIG they will be

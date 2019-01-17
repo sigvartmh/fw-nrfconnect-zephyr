@@ -46,11 +46,6 @@ assert(TOOLCHAIN_ROOT "Zephyr toolchain root path invalid: please set the TOOLCH
 set(ZEPHYR_TOOLCHAIN_VARIANT ${ZEPHYR_TOOLCHAIN_VARIANT} CACHE STRING "Zephyr toolchain variant")
 assert(ZEPHYR_TOOLCHAIN_VARIANT "Zephyr toolchain variant invalid: please set the ZEPHYR_TOOLCHAIN_VARIANT-variable")
 
-# Pick host system's toolchain if we are targeting posix
-if((${ARCH} STREQUAL "posix") OR (${ARCH} STREQUAL "x86_64"))
-  set(ZEPHYR_TOOLCHAIN_VARIANT "host")
-endif()
-
 # Configure the toolchain based on what SDK/toolchain is in use.
 include(${TOOLCHAIN_ROOT}/cmake/toolchain/${ZEPHYR_TOOLCHAIN_VARIANT}/generic.cmake)
 
