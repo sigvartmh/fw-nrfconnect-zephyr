@@ -4,7 +4,7 @@
 set(MCUBOOT_BASE "${ZEPHYR_BASE}/../mcuboot")
 assert_exists(MCUBOOT_BASE)
 
-zephyr_add_multi_image()
+zephyr_add_multi_image(mcuboot)
 add_subdirectory("${MCUBOOT_BASE}/boot/zephyr" ${CMAKE_CURRENT_BINARY_DIR}/mcuboot)
 
 # TODO: Assert that the bootloader and image use the same key.

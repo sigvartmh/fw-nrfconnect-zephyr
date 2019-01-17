@@ -104,16 +104,8 @@ function(zephyr_cc_option)
   endforeach()
 endfunction()
 
-function(zephyr_add_multi_image)
-  get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
-  if(NOT MULTI_IMAGE)
-    set_property(GLOBAL PROPERTY MULTI_IMAGE 1)
-  else()
-    MATH(EXPR incremented_multi_image "${MULTI_IMAGE}+1")
-    set_property(GLOBAL PROPERTY MULTI_IMAGE ${incremented_multi_image})
-  endif()
-  get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
-  set_property(GLOBAL PROPERTY IMAGE ${MULTI_IMAGE}_)
+function(zephyr_add_multi_image image_name)
+  set_property(GLOBAL PROPERTY IMAGE ${image_name}_)
 endfunction()
 
 

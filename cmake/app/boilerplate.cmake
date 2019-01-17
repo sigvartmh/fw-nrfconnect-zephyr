@@ -35,21 +35,15 @@ if(NOT (${CMAKE_VERSION} VERSION_LESS "3.13.0"))
   cmake_policy(SET CMP0079 OLD)
 endif()
 
-get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
 get_property(IMAGE GLOBAL PROPERTY IMAGE)
 
-if(MULTI_IMAGE)
+if(IMAGE)
   set(FIRST_BOILERPLATE_EXECUTION 0)
 else()
   set(FIRST_BOILERPLATE_EXECUTION 1)
 endif()
 
-
-if(FIRST_BOILERPLATE_EXECUTION)
-  set(IMAGE 0_)
-  set(IMAGE_ALIAS)
-else()
-  set(IMAGE_ALIAS ${IMAGE})
+if (NOT FIRST_BOILERPLATE_EXECUTION)
   # Clear the Kconfig namespace of the other image.
   # Since the CMake context of each subsequent image is loaded by "add_subdirectory"
   # the Kconfig namespace is automatically restored by CMake.
@@ -61,7 +55,7 @@ else()
       unset(${name})
     endif()
   endforeach()
-endif(FIRST_BOILERPLATE_EXECUTION)
+endif()
 
 define_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_LIBS
     BRIEF_DOCS "Image-global list of all Zephyr CMake libs that should be linked in"
