@@ -174,12 +174,13 @@ SECTIONS
 	KEEP(*(".kinetis_flash_config.*"))
 
 	_vector_end = .;
-	} GROUP_LINK_IN(ROMABLE_REGION)
 
 #if defined(CONFIG_SB_FIRMWARE_INFO_OFFSET) && defined(CONFIG_SECURE_BOOT)
 	. = CONFIG_SB_FIRMWARE_INFO_OFFSET;
 	KEEP(*(.firmware_info))
 #endif
+
+	} GROUP_LINK_IN(ROMABLE_REGION)
 
 #ifdef CONFIG_CODE_DATA_RELOCATION
 
