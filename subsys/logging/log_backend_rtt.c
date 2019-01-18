@@ -128,7 +128,7 @@ static int line_out_drop_mode(void)
 					     line_buf, line_pos - line_buf + 1);
 	RTT_UNLOCK();
 
-	if (!ret) {
+	if (ret == 0) {
 		drop_cnt++;
 		return 0;
 	}
@@ -232,6 +232,7 @@ static void log_backend_rtt_init(void)
 
 static void panic(struct log_backend const *const backend)
 {
+	log_output_flush(&log_output);
 	panic_mode = 1;
 }
 

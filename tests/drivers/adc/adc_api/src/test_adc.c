@@ -32,6 +32,7 @@
 
 #elif defined(CONFIG_BOARD_NRF52_PCA10040) || \
       defined(CONFIG_BOARD_NRF52840_PCA10056) || \
+      defined(CONFIG_BOARD_NRF52840_BLIP) || \
       defined(CONFIG_BOARD_NRF9160_PCA10090)
 
 #include <hal/nrf_saadc.h>

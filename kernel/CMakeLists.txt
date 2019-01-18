@@ -1,7 +1,6 @@
 # kernel is a normal CMake library and not a zephyr_library because it
 # should not be --whole-archive'd
 add_library(${KERNEL_LIBRARY}
-  alert.c
   device.c
   errno.c
   idle.c
@@ -52,6 +51,6 @@ target_sources_ifdef(
   )
 
 
-add_dependencies(${KERNEL_LIBRARY} ${IMAGE}offsets_h)
+add_dependencies(${KERNEL_LIBRARY} ${OFFSETS_H_TARGET})
 
 target_link_libraries(${KERNEL_LIBRARY} ${IMAGE}zephyr_interface)

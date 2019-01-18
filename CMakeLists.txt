@@ -28,7 +28,18 @@ check_c_compiler_flag("" toolchain_is_ok)
 assert(toolchain_is_ok "The toolchain is unable to build a dummy C file. See CMakeError.log.")
 
 set(CMAKE_EXECUTABLE_SUFFIX .elf)
-set(ZEPHYR_PREBUILT_EXECUTABLE ${IMAGE}zephyr_prebuilt_executable)
+
+set(ZEPHYR_PREBUILT_EXECUTABLE ${IMAGE}zephyr_prebuilt)
+
+set(OFFSETS_H_TARGET           ${IMAGE}offsets_h)
+set(SYSCALL_MACROS_H_TARGET    ${IMAGE}syscall_macros_h_target)
+set(SYSCALL_LIST_H_TARGET      ${IMAGE}syscall_list_h_target)
+set(DRIVER_VALIDATION_H_TARGET ${IMAGE}driver_validation_h_target)
+set(KOBJ_TYPES_H_TARGET        ${IMAGE}kobj_types_h_target)
+set(LINKER_SCRIPT_TARGET       ${IMAGE}linker_script_target)
+
+set(OFFSETS_LIB                ${IMAGE}offsets)
+set(KERNEL_LIBRARY             ${IMAGE}kernel)
 
 if(NOT PROPERTY_LINKER_SCRIPT_DEFINES)
   set_property(GLOBAL PROPERTY PROPERTY_LINKER_SCRIPT_DEFINES -D__GCC_LINKER_CMD__)
@@ -418,12 +429,13 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
   if (${linker_output_name} MATCHES "^linker_pass_final$")
     set(linker_pass_define -DLINKER_PASS2)
   elseif (${linker_output_name} MATCHES "^linker$")
-    if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.json)
-      set(partition_manager_target PARTITION_MANAGER_TARGET)
-      set(lol -DUSE_PARTITION_MANAGER)
-      # TODO Do ${IMAGE} on PROPERTY_LINKER_SCRIPT_DEFINES to avoid having
-      # custom variable here.
-      #      set_property(GLOBAL APPEND PROPERTY PROPERTY_LINKER_SCRIPT_DEFINES -DUSE_PARTITION_MANAGER)
+    if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.yaml)
+      set_property(GLOBAL PROPERTY PROPERTY_PARTITION_MANAGER_TARGET
+        PARTITION_MANAGER_TARGET)
+      # Duplicates are removed before this list is used.
+      set_property(GLOBAL APPEND PROPERTY
+        PROPERTY_LINKER_SCRIPT_DEFINES
+        -DUSE_PARTITION_MANAGER)
     endif()
   else()
     set(linker_pass_define "")
@@ -446,8 +458,11 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
   endif()
 
   zephyr_get_include_directories_for_lang(C current_includes)
-  get_filename_component(base_name ${CMAKE_CURRENT_BINARY_DIR} NAME)
+  file(RELATIVE_PATH base_name "${CMAKE_BINARY_DIR}" "${PROJECT_BINARY_DIR}")
   get_property(current_defines GLOBAL PROPERTY PROPERTY_LINKER_SCRIPT_DEFINES)
+  get_property(partition_manager_target GLOBAL PROPERTY
+    PROPERTY_PARTITION_MANAGER_TARGET)
+  list(REMOVE_DUPLICATES current_includes)
 
   set(${output_variable}
     OUTPUT ${linker_cmd_file_name}
@@ -461,7 +476,6 @@ function(construct_add_custom_command_for_linker_pass linker_output_name output_
     ${current_includes}
     ${current_defines}
     ${linker_pass_define}
-    ${lol}
     -E ${LINKER_SCRIPT}
     -P # Prevent generation of debug `#line' directives.
     -o ${linker_cmd_file_name}
@@ -513,7 +527,6 @@ add_subdirectory_ifdef(CONFIG_KERNEL drivers)
 add_subdirectory(tests)
 
 set(syscall_macros_h ${ZEPHYR_BINARY_DIR}/include/generated/syscall_macros.h)
-set(SYSCALL_MACROS_H_TARGET ${IMAGE}syscall_macros_h_target)
 
 add_custom_target(${SYSCALL_MACROS_H_TARGET} DEPENDS ${syscall_macros_h})
 add_custom_command(                       OUTPUT  ${syscall_macros_h}
@@ -618,7 +631,6 @@ add_custom_command(
   DEPENDS ${syscalls_subdirs_trigger} ${PARSE_SYSCALLS_HEADER_DEPENDS}
   )
 
-set(SYSCALL_LIST_H_TARGET ${IMAGE}syscall_list_h_target)
 add_custom_target(${SYSCALL_LIST_H_TARGET} DEPENDS             ${syscall_list_h})
 add_custom_command(OUTPUT include/generated/syscall_dispatch.c ${syscall_list_h}
   # Also, some files are written to include/generated/syscalls/
@@ -643,17 +655,13 @@ add_custom_command(
   $<$<BOOL:${CMAKE_VERBOSE_MAKEFILE}>:--verbose>
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   )
-set(DRIVER_VALIDATION_H_TARGET ${IMAGE}driver_validation_h_target)
 add_custom_target(${DRIVER_VALIDATION_H_TARGET} DEPENDS ${DRV_VALIDATION})
 
-set(KOBJ_TYPES_H_TARGET ${IMAGE}kobj_types_h_target)
 include($ENV{ZEPHYR_BASE}/cmake/kobj.cmake)
 gen_kobj(KOBJ_INCLUDE_PATH)
 
 # Generate offsets.c.obj from offsets.c
 # Generate offsets.h     from offsets.c.obj
-
-set(OFFSETS_LIB ${IMAGE}offsets)
 
 set(OFFSETS_C_PATH ${ZEPHYR_BASE}/arch/${ARCH}/core/offsets/offsets.c)
 set(OFFSETS_O_PATH ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${OFFSETS_LIB}.dir/arch/${ARCH}/core/offsets/offsets.c.obj)
@@ -675,14 +683,12 @@ add_custom_command(
   -o ${OFFSETS_H_PATH}
   DEPENDS ${OFFSETS_LIB}
 )
-set(OFFSETS_H_TARGET ${IMAGE}offsets_h)
 add_custom_target(${OFFSETS_H_TARGET} DEPENDS ${OFFSETS_H_PATH})
 
 zephyr_include_directories(${TOOLCHAIN_INCLUDES})
 
 zephyr_get_include_directories_for_lang(C ZEPHYR_INCLUDES)
 
-set(KERNEL_LIBRARY ${IMAGE}kernel)
 add_subdirectory(kernel)
 
 # Read list content
@@ -817,7 +823,6 @@ add_custom_command(
   ${custom_command}
 )
 
-set(LINKER_SCRIPT_TARGET ${IMAGE}linker_script_target)
 add_custom_target(
   ${LINKER_SCRIPT_TARGET}
   DEPENDS
@@ -909,6 +914,24 @@ if(CONFIG_CODE_DATA_RELOCATION)
 
 endif()
 
+if(CONFIG_USERSPACE)
+  zephyr_get_compile_options_for_lang_as_string(C compiler_flags_priv)
+  string(REPLACE "-ftest-coverage" "" NO_COVERAGE_FLAGS "${compiler_flags_priv}")
+  string(REPLACE "-fprofile-arcs" "" NO_COVERAGE_FLAGS "${NO_COVERAGE_FLAGS}")
+
+  get_property(include_dir_in_interface TARGET zephyr_interface
+    PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+
+  get_property(sys_include_dir_in_interface TARGET zephyr_interface
+    PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
+
+  get_property(compile_definitions_interface TARGET zephyr_interface
+    PROPERTY INTERFACE_COMPILE_DEFINITIONS)
+
+  set(complete_include_dirs ${include_dir_in_interface} ${sys_include_dir_in_interface})
+endif()
+
+
 if(CONFIG_ARM AND CONFIG_USERSPACE)
   set(GEN_PRIV_STACKS $ENV{ZEPHYR_BASE}/scripts/gen_priv_stacks.py)
   set(PROCESS_PRIV_STACKS_GPERF $ENV{ZEPHYR_BASE}/scripts/process_gperf.py)
@@ -973,6 +996,13 @@ if(CONFIG_ARM AND CONFIG_USERSPACE)
     )
   add_custom_target(priv_stacks_output_src DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${PRIV_STACKS_OUTPUT_SRC})
 
+  set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/${PRIV_STACKS_OUTPUT_SRC}
+    PROPERTIES COMPILE_DEFINITIONS "${compile_definitions_interface}")
+
+  set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/${PRIV_STACKS_OUTPUT_SRC}
+    PROPERTIES COMPILE_FLAGS
+    "${NO_COVERAGE_FLAGS} -fno-function-sections -fno-data-sections ")
+
   # We need precise control of where generated text/data ends up in the final
   # kernel image. Disable function/data sections and use objcopy to move
   # generated data into special section names
@@ -980,16 +1010,14 @@ if(CONFIG_ARM AND CONFIG_USERSPACE)
     ${CMAKE_CURRENT_BINARY_DIR}/${PRIV_STACKS_OUTPUT_SRC}
     )
 
-  target_link_libraries(priv_stacks_output_lib ${IMAGE}zephyr_interface)
-
   # Turn off -ffunction-sections, etc.
   # NB: Using a library instead of target_compile_options(priv_stacks_output_lib
   # [...]) because a library's options have precedence
   add_library(priv_stacks_output_lib_interface INTERFACE)
-  target_compile_options(priv_stacks_output_lib_interface INTERFACE
-    -fno-function-sections
-    -fno-data-sections
-    )
+  foreach(incl ${complete_include_dirs})
+    target_include_directories(priv_stacks_output_lib_interface INTERFACE ${incl})
+  endforeach()
+
   target_link_libraries(priv_stacks_output_lib priv_stacks_output_lib_interface)
 
   set(PRIV_STACKS_OUTPUT_OBJ_PATH ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/priv_stacks_output_lib.dir/${PRIV_STACKS_OUTPUT_OBJ})
@@ -1095,18 +1123,23 @@ if(CONFIG_USERSPACE)
     )
 
   # always compile kobject_hash.c at optimization -Os
-  set_source_files_properties(${OUTPUT_SRC} PROPERTIES COMPILE_FLAGS -Os)
-  target_link_libraries(output_lib ${IMAGE}zephyr_interface)
+  set_source_files_properties(${OUTPUT_SRC} PROPERTIES COMPILE_FLAGS
+    "${NO_COVERAGE_FLAGS} -Os -fno-function-sections -fno-data-sections")
+
+  set_source_files_properties(${OUTPUT_SRC}
+    PROPERTIES COMPILE_DEFINITIONS "${compile_definitions_interface}")
 
   # Turn off -ffunction-sections, etc.
   # NB: Using a library instead of target_compile_options(output_lib
   # [...]) because a library's options have precedence
   add_library(output_lib_interface INTERFACE)
-  target_compile_options(output_lib_interface INTERFACE
-    -fno-function-sections
-    -fno-data-sections
-    )
+
   target_link_libraries(output_lib output_lib_interface)
+
+  foreach(incl ${complete_include_dirs})
+    target_include_directories(output_lib_interface INTERFACE ${incl})
+  endforeach()
+
 
   set(OUTPUT_OBJ_PATH ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/output_lib.dir/${OUTPUT_OBJ})
 
@@ -1363,6 +1396,17 @@ list_append_ifdef(
   COMMAND ${CMAKE_COMMAND} -E copy ${KERNEL_ELF_NAME}    ${KERNEL_EXE_NAME}
   )
 
+get_property(
+  extra_post_build_commands
+  GLOBAL PROPERTY
+  extra_post_build_commands
+  )
+
+list(APPEND
+  post_build_commands
+  ${extra_post_build_commands}
+  )
+
 add_custom_command(
   TARGET ${logical_target_for_zephyr_elf}
   POST_BUILD
@@ -1452,10 +1496,10 @@ endif()
 
 if(CONFIG_BOARD_DEPRECATED)
   message(WARNING "
-  WARNING:  The board '${BOARD}' is deprecated and will be
-  removed in version ${CONFIG_BOARD_DEPRECATED}"
+      WARNING:  The board '${BOARD}' is deprecated and will be
+      removed in version ${CONFIG_BOARD_DEPRECATED}"
   )
-  endif()
+endif()
 
 if(CONFIG_X86 AND CONFIG_USERSPACE AND NOT CONFIG_X86_NO_MELTDOWN)
   message(WARNING "

@@ -10,7 +10,11 @@
 # Omitting it is permitted, but doing so incurs a maintenance cost as
 # the application must manage upstream changes to this file.
 
-# CMake version 3.8.2 is the real minimum supported version.
+# app is a CMake library containing all the application code and is
+# modified by the entry point ${APPLICATION_SOURCE_DIR}/CMakeLists.txt
+# that was specified when cmake was called.
+
+# CMake version 3.13.1 is the real minimum supported version.
 #
 # Unfortunately CMake requires the toplevel CMakeLists.txt file to
 # define the required version, not even invoking it from an included
@@ -19,7 +23,7 @@
 #
 # Under these restraints we use a second 'cmake_minimum_required'
 # invocation in every toplevel CMakeLists.txt.
-cmake_minimum_required(VERSION 3.8.2)
+cmake_minimum_required(VERSION 3.13.1)
 
 # CMP0002: "Logical target names must be globally unique"
 cmake_policy(SET CMP0002 NEW)
@@ -31,21 +35,15 @@ if(NOT (${CMAKE_VERSION} VERSION_LESS "3.13.0"))
   cmake_policy(SET CMP0079 OLD)
 endif()
 
-get_property(MULTI_IMAGE GLOBAL PROPERTY MULTI_IMAGE)
 get_property(IMAGE GLOBAL PROPERTY IMAGE)
 
-if(MULTI_IMAGE)
+if(IMAGE)
   set(FIRST_BOILERPLATE_EXECUTION 0)
 else()
   set(FIRST_BOILERPLATE_EXECUTION 1)
 endif()
 
-
-if(FIRST_BOILERPLATE_EXECUTION)
-  set(IMAGE 0_)
-  set(IMAGE_ALIAS)
-else()
-  set(IMAGE_ALIAS ${IMAGE})
+if (NOT FIRST_BOILERPLATE_EXECUTION)
   # Clear the Kconfig namespace of the other image.
   # Since the CMake context of each subsequent image is loaded by "add_subdirectory"
   # the Kconfig namespace is automatically restored by CMake.
@@ -57,7 +55,7 @@ else()
       unset(${name})
     endif()
   endforeach()
-endif(FIRST_BOILERPLATE_EXECUTION)
+endif()
 
 define_property(GLOBAL PROPERTY ${IMAGE}ZEPHYR_LIBS
     BRIEF_DOCS "Image-global list of all Zephyr CMake libs that should be linked in"
@@ -252,7 +250,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
   # Prevent CMake from testing the toolchain
   set(CMAKE_C_COMPILER_FORCED   1)
   set(CMAKE_CXX_COMPILER_FORCED 1)
-  
+
   include(${ZEPHYR_BASE}/cmake/host-tools.cmake)
 
   # DTS should be close to kconfig because CONFIG_ variables from
@@ -328,10 +326,6 @@ alternate .overlay file using this parameter. These settings will override the \
 settings in the board's .dts file. Multiple files may be listed, e.g. \
 DTC_OVERLAY_FILE=\"dts1.overlay dts2.overlay\"")
 
-if(FIRST_BOILERPLATE_EXECUTION) 
-  include(${ZEPHYR_BASE}/cmake/generic_toolchain.cmake)
-endif(FIRST_BOILERPLATE_EXECUTION)
-
 include(${ZEPHYR_BASE}/cmake/kconfig.cmake)
 
 set(SOC_NAME   ${CONFIG_SOC})
@@ -343,6 +337,7 @@ if("${SOC_SERIES}" STREQUAL "")
 else()
   set(SOC_PATH ${SOC_FAMILY}/${SOC_SERIES})
 endif()
+
 include(${ZEPHYR_BASE}/cmake/dts.cmake)
 
 include(${ZEPHYR_BASE}/cmake/target_toolchain.cmake)
@@ -399,11 +394,11 @@ set_property(TARGET ${IMAGE}app PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${IMAGE}app)
 
 add_subdirectory(${ZEPHYR_BASE} ${__build_dir})
 
-if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.json)
+if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.yaml)
   zephyr_get_include_directories_for_lang(C current_includes)
   get_property(current_defines GLOBAL PROPERTY PROPERTY_LINKER_SCRIPT_DEFINES)
   set(pre_partition_mananger_conf
-    ${PROJECT_BINARY_DIR}/include/generated/pm.json.pre)
+    ${PROJECT_BINARY_DIR}/include/generated/pm.yaml.pre)
   set(partition_manager_conf_target ${IMAGE}pm_conf_target)
   add_custom_command(
     OUTPUT ${pre_partition_mananger_conf}
@@ -413,7 +408,7 @@ if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.json)
     ${NOSYSDEF_CFLAG}
     ${current_includes}
     ${current_defines}
-    -E ${APPLICATION_SOURCE_DIR}/pm.json
+    -E ${APPLICATION_SOURCE_DIR}/pm.yaml
     -P # Prevent generation of debug `#line' directives.
     ${partition_manager_override_include}
     -o ${pre_partition_mananger_conf}
@@ -439,7 +434,7 @@ endif()
 
 if(FIRST_BOILERPLATE_EXECUTION)
   get_property(
-    partition_manager_config_files
+      partition_manager_config_files
     GLOBAL PROPERTY
     PARTITION_MANAGER_CONFIG_FILES
     )
@@ -449,6 +444,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
       GLOBAL PROPERTY
       PARTITION_MANAGER_CONFIG_TARGETS
       )
+    file(GLOB_RECURSE autoconf_files "${PROJECT_BINARY_DIR}/**/autoconf.h")
     add_custom_target(
       PARTITION_MANAGER_TARGET
       # For every input_file
@@ -456,13 +452,15 @@ if(FIRST_BOILERPLATE_EXECUTION)
       ${PYTHON_EXECUTABLE}
       ${ZEPHYR_BASE}/scripts/partition_manager.py
       -i ${partition_manager_config_files}
+      -c ${autoconf_files}
       -o override.h
+      --app-override-file ${PROJECT_BINARY_DIR}/include/generated/override.h
+      -s 1048576
       DEPENDS
       ${partition_manager_config_targets}
       )
   endif()
 endif()
-#TODO: Everything below here.
 
 # Link 'app' with the Zephyr interface libraries.
 #
@@ -477,8 +475,26 @@ foreach(boilerplate_lib ${ZEPHYR_INTERFACE_LIBS_PROPERTY})
   # properties of 'boilerplate_lib'. The most common property is 'include
   # directories', but it is also possible to have defines and compiler
   # flags in the interface of a library.
-  #
-  string(TOUPPER ${boilerplate_lib} boilerplate_lib_upper_case) # Support lowercase lib names
+
+  # 'boilerplate_lib' is formatted as '0_mbedtls' (for instance). But
+  # the Kconfig options are formatted as
+  # 'CONFIG_APP_LINK_WITH_MBEDTLS'. So we need to strip the '0_' and
+  # convert to upper case.
+
+  # Match the non-image'ified library name. E.g. '1_mylib' -> 'mylib'.
+  set(image_regex "^${IMAGE}(.*)")
+  string(REGEX MATCH
+	${image_regex}
+	unused_out_var
+	${boilerplate_lib}
+	)
+  if(CMAKE_MATCH_1)
+	set(boilerplate_lib_without_image ${CMAKE_MATCH_1})
+  else()
+	message(FATAL_ERROR "Internal error. Expected '${boilerplate_lib}' to match '${image_regex}'")
+  endif()
+
+  string(TOUPPER ${boilerplate_lib_without_image} boilerplate_lib_upper_case) # Support lowercase lib names
   target_link_libraries_ifdef(
     CONFIG_APP_LINK_WITH_${boilerplate_lib_upper_case}
     ${IMAGE}app

@@ -41,6 +41,7 @@
 #if !defined(SKIP_TO_KINETIS_FLASH_CONFIG)
   #define SKIP_TO_KINETIS_FLASH_CONFIG
 #endif
+
 #define ROM_ADDR (CONFIG_FLASH_BASE_ADDRESS + CONFIG_FLASH_LOAD_OFFSET)
 #ifdef CONFIG_TI_CCFG_PRESENT
   #define CCFG_SIZE 88
@@ -114,12 +115,12 @@ SECTIONS
      * .plt and .iplt are here according to 'arm-zephyr-elf-ld --verbose',
      * before text section.
      */
-    SECTION_PROLOGUE(.plt,,)
+    /DISCARD/ :
 	{
 	*(.plt)
 	}
 
-    SECTION_PROLOGUE(.iplt,,)
+    /DISCARD/ :
 	{
 	*(.iplt)
 	}
@@ -136,6 +137,17 @@ SECTIONS
 	KEEP(*(.dbghdr))
 	KEEP(*(".dbghdr.*"))
 #endif
+
+#ifdef CONFIG_NXP_IMX_RT_BOOT_HEADER
+	KEEP(*(.boot_hdr.conf))
+	. = CONFIG_IMAGE_VECTOR_TABLE_OFFSET;
+	KEEP(*(.boot_hdr.ivt))
+	KEEP(*(.boot_hdr.data))
+#ifdef CONFIG_DEVICE_CONFIGURATION_DATA
+	KEEP(*(.boot_hdr.dcd_data))
+#endif
+#endif
+
 	. = CONFIG_TEXT_SECTION_OFFSET;
 
 #if defined(CONFIG_SW_VECTOR_RELAY)
@@ -162,12 +174,21 @@ SECTIONS
 	KEEP(*(".kinetis_flash_config.*"))
 
 	_vector_end = .;
+	} GROUP_LINK_IN(ROMABLE_REGION)
 
 #if defined(CONFIG_SB_FIRMWARE_INFO_OFFSET) && defined(CONFIG_SECURE_BOOT)
 	. = CONFIG_SB_FIRMWARE_INFO_OFFSET;
 	KEEP(*(.firmware_info))
 #endif
 
+#ifdef CONFIG_CODE_DATA_RELOCATION
+
+#include <linker_relocate.ld>
+
+#endif /* CONFIG_CODE_DATA_RELOCATION */
+
+    SECTION_PROLOGUE(_TEXT_SECTION_NAME_2,,)
+	{
 	_image_text_start = .;
 	*(.text)
 	*(".text.*")
@@ -279,8 +300,7 @@ SECTIONS
      * These are here according to 'arm-zephyr-elf-ld --verbose',
      * before data section.
      */
-    SECTION_PROLOGUE(.got,,)
-	{
+    /DISCARD/ : {
 	*(.got.plt)
 	*(.igot.plt)
 	*(.got)
@@ -314,6 +334,32 @@ SECTIONS
 		*(".vt_pointer_section.*")
 	}
 #endif
+
+#ifdef CONFIG_COVERAGE_GCOV
+    SECTION_DATA_PROLOGUE(_GCOV_BSS_SECTION_NAME,(NOLOAD),)
+	{
+
+#ifdef CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT
+       . = ALIGN( 1 << LOG2CEIL(__gcov_bss_end - __gcov_bss_start ));
+#endif /* CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT */
+
+       __gcov_bss_start = .;
+       KEEP(*(".bss.__gcov0.*"));
+
+#ifdef CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT
+       . = ALIGN( 1 << LOG2CEIL(__gcov_bss_end - __gcov_bss_start ));
+#else  /* CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT */
+       . = ALIGN(4);
+#endif /* CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT */
+
+       __gcov_bss_end = .;
+
+	} GROUP_LINK_IN(RAMABLE_REGION)
+
+       __gcov_bss_num_words = ((__gcov_bss_end - __gcov_bss_start) >> 2);
+       __gcov_bss_size = __gcov_bss_end - __gcov_bss_start;
+
+#endif /* CONFIG_COVERAGE_GCOV */
 
 #ifdef CONFIG_APPLICATION_MEMORY
 	SECTION_DATA_PROLOGUE(_APP_DATA_SECTION_NAME, (OPTIONAL),)
