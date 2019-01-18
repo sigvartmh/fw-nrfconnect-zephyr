@@ -148,28 +148,6 @@
 		compatible = "fixed-partitions";
 		#address-cells = <1>;
 		#size-cells = <1>;
-#ifdef CONFIG_SECURE_BOOT
-		boot_partition: partition@4000 {
-			label = "mcuboot";
-			reg = <0x000004000 0x0000C000>;
-		};
-		slot0_partition: partition@1c000 {
-			label = "image-0";
-			reg = <0x0001C000 0x000052800>;
-		};
-		slot1_partition: partition@6e800 {
-			label = "image-1";
-			reg = <0x0006e800 0x000052800>;
-		};
-		scratch_partition: partition@c1000 {
-			label = "image-scratch";
-			reg = <0x000c1000 0x0001e000>;
-		};
-		storage_partition: partition@df000 {
-			label = "storage";
-			reg = <0x000df000 0x00004000>;
-		};
-#else
 		boot_partition: partition@0 {
 			label = "mcuboot";
 			reg = <0x000000000 0x0000C000>;
@@ -190,7 +168,6 @@
 			label = "storage";
 			reg = <0x000fc000 0x00004000>;
 		};
-#endif /* CONFIG_SECURE_BOOT */
 	};
 };
 

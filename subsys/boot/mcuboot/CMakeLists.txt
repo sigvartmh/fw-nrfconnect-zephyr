@@ -24,6 +24,8 @@ set_property(GLOBAL APPEND PROPERTY
   --slot-size 0x32000 # TODO: Configurable?
   ${KERNEL_HEX_NAME}  # TODO: Enforce that this will be present through Kconfig
   ${SIGNED_IMAGE}
+  WORKING_DIRECTORY
+  ${PROJECT_BINARY_DIR}
   )
 
 set_property(GLOBAL APPEND PROPERTY

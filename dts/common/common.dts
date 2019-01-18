@@ -3,6 +3,9 @@
  * additions by the build system.
  */
 
-#if defined(CONFIG_IS_SECURE_BOOTLOADER) || defined(CONFIG_SECURE_BOOT)
+#ifdef CONFIG_BOOTLOADER_MCUBOOT
+#include "mcuboot.overlay"
+#endif
+#if defined(CONFIG_IS_SECURE_BOOTLOADER)
 #include "secureboot.overlay"
 #endif
