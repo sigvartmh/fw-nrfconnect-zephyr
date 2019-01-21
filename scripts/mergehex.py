@@ -8,7 +8,7 @@
 # Any conflicts will result in an error being reported.
 
 from intelhex import IntelHex
-
+from intelhex import AddressOverlapError
 import argparse
 
 
@@ -22,7 +22,11 @@ def merge_hex_files(output, input_hex_files):
         # the start_addr to avoid conflicts when merging.
         to_merge.start_addr = None
 
-        ih.merge(to_merge)
+        try:
+            ih.merge(to_merge)
+        except AddressOverlapError as e:
+            print("Could not merge %s" % hex_file_path)
+            raise e
     ih.write_hex_file(output)
 
 
