@@ -137,6 +137,8 @@ def write_override_files(adr_map):
         open(conf['out_path'], 'w').write('''\
 #undef CONFIG_FLASH_BASE_ADDRESS
 #define CONFIG_FLASH_BASE_ADDRESS %s
+#undef CONFIG_FLASH_LOAD_OFFSET
+#define CONFIG_FLASH_LOAD_OFFSET 0
 #undef CONFIG_FLASH_LOAD_SIZE
 #define CONFIG_FLASH_LOAD_SIZE %s
 ''' % (hex(conf['address']), hex(conf['size'])))

@@ -9,7 +9,7 @@ add_subdirectory("${MCUBOOT_BASE}/boot/zephyr" ${CMAKE_CURRENT_BINARY_DIR}/mcubo
 
 # TODO: Assert that the bootloader and image use the same key.
 
-set(SIGNED_IMAGE signed.hex)
+set(SIGNED_IMAGE signed_by_mcuboot_${KERNEL_HEX_NAME})
 
 set_property(GLOBAL APPEND PROPERTY
   extra_post_build_commands
@@ -21,9 +21,9 @@ set_property(GLOBAL APPEND PROPERTY
   --header-size ${CONFIG_TEXT_SECTION_OFFSET}
   --align 8           # TODO: Configurable?
   --version 1.0       # TODO: Configurable?
-  --slot-size 0x32000 # TODO: Configurable?
-  ${KERNEL_HEX_NAME}  # TODO: Enforce that this will be present through Kconfig
-  ${SIGNED_IMAGE}
+  --slot-size 0x69000 # TODO: Configurable?
+  ${PROJECT_BINARY_DIR}/${KERNEL_HEX_NAME}  # TODO: Enforce that this will be present through Kconfig
+  ${PROJECT_BINARY_DIR}/${SIGNED_IMAGE}
   )
 
 set_property(GLOBAL APPEND PROPERTY
