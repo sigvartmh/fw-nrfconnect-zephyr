@@ -18,15 +18,18 @@ def merge_hex_files(output, input_hex_files):
     for hex_file_path in input_hex_files:
         to_merge = IntelHex(hex_file_path)
 
-        # Since 'arm-none-eabi-objcopy' incorrectly inserts record type '03 - Start Segment Address', we need to remove
-        # the start_addr to avoid conflicts when merging.
+        # Since 'arm-none-eabi-objcopy' incorrectly inserts record
+        # type '03 - Start Segment Address', we need to remove the
+        # start_addr to avoid conflicts when merging.
         to_merge.start_addr = None
 
         try:
             ih.merge(to_merge)
         except AddressOverlapError as e:
-            print("Could not merge %s" % hex_file_path)
-            raise e
+            raise AddressOverlapError("{} has merge issues".format(hex_file_path))
+
+        print("Merged {}".format(hex_file_path))
+
     ih.write_hex_file(output)
 
 
