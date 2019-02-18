@@ -29,116 +29,6 @@ from extract.flash import flash
 from extract.pinctrl import pinctrl
 from extract.default import default
 
-class Bindings(yaml.Loader):
-
-    ##
-    # List of all yaml files available for yaml loaders
-    # of this class. Must be preset before the first
-    # load operation.
-    _files = []
-
-    ##
-    # Files that are already included.
-    # Must be reset on the load of every new binding
-    _included = []
-
-    @classmethod
-    def bindings(cls, dts_compats, yaml_dirs):
-        # Find all .yaml files in yaml_dirs
-        cls._files = []
-        for yaml_dir in yaml_dirs:
-            for root, dirnames, filenames in os.walk(yaml_dir):
-                for filename in fnmatch.filter(filenames, '*.yaml'):
-                    cls._files.append(os.path.join(root, filename))
-
-        compat_to_binding = {}
-        # Maps buses to dictionaries that map compats to YAML nodes
-        bus_to_binding = defaultdict(dict)
-        compats = []
-
-        loaded_yamls = set()
-
-        for file in cls._files:
-            # Extract compat from 'constraint:' line
-            for line in open(file, 'r', encoding='utf-8'):
-                match = re.match(r'\s+constraint:\s*"([^"]*)"', line)
-                if match:
-                    break
-            else:
-                # No 'constraint:' line found. Move on to next yaml file.
-                continue
-
-            compat = match.group(1)
-            if compat not in dts_compats or file in loaded_yamls:
-                # The compat does not appear in the device tree, or the yaml
-                # file has already been loaded
-                continue
-
-            # Found a binding (.yaml file) for a 'compatible' value that
-            # appears in DTS. Load it.
-
-            loaded_yamls.add(file)
-
-            if compat not in compats:
-                compats.append(compat)
-
-            with open(file, 'r', encoding='utf-8') as yf:
-                cls._included = []
-                binding = merge_included_bindings(file, yaml.load(yf, cls))
-
-                if 'parent' in binding:
-                    bus_to_binding[binding['parent']['bus']][compat] = binding
-                else:
-                    compat_to_binding[compat] = binding
-
-        return compat_to_binding, bus_to_binding, compats
-
-    def __init__(self, stream):
-        filepath = os.path.realpath(stream.name)
-        if filepath in self._included:
-            print("Error: circular inclusion for file name '{}'".
-                  format(stream.name))
-            raise yaml.constructor.ConstructorError
-        self._included.append(filepath)
-        super(Bindings, self).__init__(stream)
-        Bindings.add_constructor('!include', Bindings._include)
-
-    def _include(self, node):
-        # Implements !include. Returns a list with the top-level YAML
-        # structures for the included files (a single-element list if there's
-        # just one file).
-
-        if isinstance(node, yaml.ScalarNode):
-            # !include foo.yaml
-            return [self._extract_file(self.construct_scalar(node))]
-
-        if isinstance(node, yaml.SequenceNode):
-            # !include [foo.yaml, bar.yaml]
-            return [self._extract_file(fname)
-                    for fname in self.construct_sequence(node)]
-
-        print("Error: unrecognised node type in !include statement")
-        raise yaml.constructor.ConstructorError
-
-    def _extract_file(self, filename):
-        filepaths = [filepath for filepath in self._files if filepath.endswith(filename)]
-        if len(filepaths) == 0:
-            print("Error: unknown file name '{}' in !include statement".
-                  format(filename))
-            raise yaml.constructor.ConstructorError
-        elif len(filepaths) > 1:
-            # multiple candidates for filename
-            files = []
-            for filepath in filepaths:
-                if os.path.basename(filename) == os.path.basename(filepath):
-                    files.append(filepath)
-            if len(files) > 1:
-                print("Error: multiple candidates for file name '{}' in !include statement".
-                      format(filename), filepaths)
-                raise yaml.constructor.ConstructorError
-            filepaths = files
-        with open(filepaths[0], 'r', encoding='utf-8') as f:
-            return yaml.load(f, Bindings)
 
 def extract_bus_name(node_address, def_label):
     label = def_label + '_BUS_NAME'
@@ -308,35 +198,31 @@ def extract_node_include_info(reduced, root_node_address, sub_node_address,
                         extract_property(
                             node_compat, sub_node_address, k, v, None)
 
-def dict_merge(parent, fname, dct, merge_dct):
-    # from https://gist.github.com/angstwad/bf22d1822c38a92ec0a9
+def merge_properties(parent, fname, to_dict, from_dict):
+    # Recursively merges the 'from_dict' dictionary into 'to_dict', to
+    # implement !include. 'parent' is the current parent key being looked at.
+    # 'fname' is the top-level .yaml file.
 
-    """ Recursive dict merge. Inspired by :meth:``dict.update()``, instead of
-    updating only top-level keys, dict_merge recurses down into dicts nested
-    to an arbitrary depth, updating keys. The ``merge_dct`` is merged into
-    ``dct``.
-    :param parent: parent tuple key
-    :param fname: yaml file being processed
-    :param dct: dict onto which the merge is executed
-    :param merge_dct: dct merged into dct
-    :return: None
-    """
-    for k, v in merge_dct.items():
-        if (k in dct and isinstance(dct[k], dict)
-                and isinstance(merge_dct[k], Mapping)):
-            dict_merge(k, fname, dct[k], merge_dct[k])
+    for k, v in from_dict.items():
+        if (k in to_dict and isinstance(to_dict[k], dict)
+                         and isinstance(from_dict[k], dict)):
+            merge_properties(k, fname, to_dict[k], from_dict[k])
         else:
-            if k in dct and dct[k] != merge_dct[k]:
-                merge_warn = True
-                # Don't warn if we are changing the "category" from "optional
-                # to "required"
-                if (k == "category" and dct[k] == "optional" and
-                    merge_dct[k] == "required"):
-                    merge_warn = False
-                if merge_warn:
-                    print("extract_dts_includes.py: {}('{}') merge of property '{}': '{}' overwrites '{}'.".format(
-                            fname, parent, k, merge_dct[k], dct[k]))
-            dct[k] = merge_dct[k]
+            to_dict[k] = from_dict[k]
+
+            # Warn when overriding a property and changing its value...
+            if (k in to_dict and to_dict[k] != from_dict[k] and
+                # ...unless it's the 'title', 'description', or 'version'
+                # property. These are overriden deliberately.
+                not k in {'title', 'version', 'description'} and
+                # Also allow the category to be changed from 'optional' to
+                # 'required' without a warning
+                not (k == "category" and to_dict[k] == "optional" and
+                     from_dict[k] == "required")):
+
+                print("extract_dts_includes.py: {}('{}') merge of property "
+                      "'{}': '{}' overwrites '{}'"
+                      .format(fname, parent, k, from_dict[k], to_dict[k]))
 
 
 def merge_included_bindings(fname, node):
@@ -347,16 +233,10 @@ def merge_included_bindings(fname, node):
     check_binding_properties(node)
 
     if 'inherits' in node:
-        for inherits in node.pop('inherits'):
-            inherits = merge_included_bindings(fname, inherits)
-            # title, description, version of inherited node
-            # are overwritten by intention. Remove to prevent dct_merge to
-            # complain about duplicates.
-            inherits.pop('title', None)
-            inherits.pop('version', None)
-            inherits.pop('description', None)
-            dict_merge(None, fname, inherits, node)
-            node = inherits
+        for inherited in node.pop('inherits'):
+            inherited = merge_included_bindings(fname, inherited)
+            merge_properties(None, fname, inherited, node)
+            node = inherited
 
     return node
 
@@ -392,14 +272,15 @@ def write_conf(f):
         f.write('# ' + node.split('/')[-1] + '\n')
 
         for prop in sorted(defs[node]):
-            if prop != 'aliases':
+            if prop != 'aliases' and prop.startswith("DT_"):
                 f.write('%s=%s\n' % (prop, defs[node][prop]))
 
         for alias in sorted(defs[node]['aliases']):
             alias_target = defs[node]['aliases'][alias]
             if alias_target not in defs[node]:
                 alias_target = defs[node]['aliases'][alias_target]
-            f.write('%s=%s\n' % (alias, defs[node].get(alias_target)))
+            if alias.startswith("DT_"):
+                f.write('%s=%s\n' % (alias, defs[node].get(alias_target)))
 
         f.write('\n')
 
@@ -448,14 +329,114 @@ def write_header(f):
     f.write('#endif\n')
 
 
-def load_yaml_descriptions(root, yaml_dirs):
-    compatibles = all_compats(root)
+def load_bindings(root, binding_dirs):
+    find_binding_files(binding_dirs)
+    dts_compats = all_compats(root)
 
-    (bindings, bus, bindings_compat) = Bindings.bindings(compatibles, yaml_dirs)
-    if not bindings:
-        raise Exception("Missing YAML information.  Check YAML sources")
+    compat_to_binding = {}
+    # Maps buses to dictionaries that map compats to YAML nodes
+    bus_to_binding = defaultdict(dict)
+    compats = []
 
-    return (bindings, bus, bindings_compat)
+    # Add '!include foo.yaml' handling
+    yaml.add_constructor('!include', yaml_include)
+
+    loaded_yamls = set()
+
+    for file in binding_files:
+        # Extract compat from 'constraint:' line
+        for line in open(file, 'r', encoding='utf-8'):
+            match = re.match(r'\s+constraint:\s*"([^"]*)"', line)
+            if match:
+                break
+        else:
+            # No 'constraint:' line found. Move on to next yaml file.
+            continue
+
+        compat = match.group(1)
+        if compat not in dts_compats or file in loaded_yamls:
+            # The compat does not appear in the device tree, or the yaml
+            # file has already been loaded
+            continue
+
+        # Found a binding (.yaml file) for a 'compatible' value that
+        # appears in DTS. Load it.
+
+        loaded_yamls.add(file)
+
+        if compat not in compats:
+            compats.append(compat)
+
+        with open(file, 'r', encoding='utf-8') as yf:
+            binding = merge_included_bindings(file, yaml.load(yf))
+
+            if 'parent' in binding:
+                bus_to_binding[binding['parent']['bus']][compat] = binding
+            else:
+                compat_to_binding[compat] = binding
+
+    if not compat_to_binding:
+        raise Exception("No bindings found in '{}'".format(binding_dirs))
+
+    extract.globals.bindings = compat_to_binding
+    extract.globals.bus_bindings = bus_to_binding
+    extract.globals.bindings_compat = compats
+
+
+def find_binding_files(binding_dirs):
+    # Initializes the global 'binding_files' variable with a list of paths to
+    # binding (.yaml) files
+
+    global binding_files
+
+    binding_files = []
+
+    for binding_dir in binding_dirs:
+        for root, dirnames, filenames in os.walk(binding_dir):
+            for filename in fnmatch.filter(filenames, '*.yaml'):
+                binding_files.append(os.path.join(root, filename))
+
+
+def yaml_include(loader, node):
+    # Implements !include. Returns a list with the top-level YAML structures
+    # for the included files (a single-element list if there's just one file).
+
+    if isinstance(node, yaml.ScalarNode):
+        # !include foo.yaml
+        return [load_binding_file(loader.construct_scalar(node))]
+
+    if isinstance(node, yaml.SequenceNode):
+        # !include [foo.yaml, bar.yaml]
+        return [load_binding_file(fname)
+                for fname in loader.construct_sequence(node)]
+
+    yaml_inc_error("Error: unrecognised node type in !include statement")
+
+
+def load_binding_file(fname):
+    # yaml_include() helper for loading an !include'd file. !include takes just
+    # the basename of the file, so we need to make sure that there aren't
+    # multiple candidates.
+
+    filepaths = [filepath for filepath in binding_files
+                 if os.path.basename(filepath) == os.path.basename(fname)]
+
+    if not filepaths:
+        yaml_inc_error("Error: unknown file name '{}' in !include statement"
+                       .format(fname))
+
+    if len(filepaths) > 1:
+        yaml_inc_error("Error: multiple candidates for file name '{}' in "
+                       "!include statement: {}".format(fname, filepaths))
+
+    with open(filepaths[0], 'r', encoding='utf-8') as f:
+        return yaml.load(f)
+
+
+def yaml_inc_error(msg):
+    # Helper for reporting errors in the !include implementation
+
+    raise yaml.constructor.ConstructorError(None, None, msg)
 
 
 def generate_node_definitions():
@@ -513,8 +494,7 @@ def main():
     create_aliases(root)
     create_chosen(root)
 
-    (extract.globals.bindings, extract.globals.bus_bindings,
-     extract.globals.bindings_compat) = load_yaml_descriptions(root, args.yaml)
+    load_bindings(root, args.yaml)
 
     generate_node_definitions()
 
