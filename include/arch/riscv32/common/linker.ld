@@ -191,10 +191,4 @@ SECTIONS
 
 #include <linker/debug-sections.ld>
 
-    SECTION_PROLOGUE(.riscv.attributes, 0,)
-	{
-	KEEP(*(.riscv.attributes))
-	KEEP(*(.gnu.attributes))
-	}
-
 }

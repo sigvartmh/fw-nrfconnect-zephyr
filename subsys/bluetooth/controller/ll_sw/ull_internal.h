@@ -9,11 +9,6 @@ static inline u8_t ull_ref_inc(struct ull_hdr *hdr)
 	return ++hdr->ref;
 }
 
-static inline u8_t ull_ref_dec(struct ull_hdr *hdr)
-{
-	return hdr->ref--;
-}
-
 static inline void ull_hdr_init(struct ull_hdr *hdr)
 {
 	hdr->disabled_cb = hdr->disabled_param = NULL;

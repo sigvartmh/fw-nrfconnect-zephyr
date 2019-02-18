@@ -57,8 +57,6 @@ static inline void vector_to_irq(int irq_nbr, int *may_swap)
 			*may_swap = 1;
 		}
 	}
-
-	sys_trace_isr_exit();
 	/* _int_latency_stop(); */
 }
 

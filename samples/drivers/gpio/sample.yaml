@@ -3,7 +3,8 @@ sample:
 tests:
   test:
     tags: drivers
-    filter: DT_GPIO_LEDS_LED0_GPIO_CONTROLLER and DT_GPIO_KEYS_SW0_GPIO_CONTROLLER
+    # The filters below are from DTS
+    filter: LED0_GPIO_CONTROLLER and SW0_GPIO_CONTROLLER
     harness: console
     harness_config:
         type: one_line

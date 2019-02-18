@@ -374,7 +374,6 @@ struct shell_flags {
 	u32_t tx_rdy      :1;
 	u32_t mode_delete :1; /*!< Operation mode of backspace key */
 	u32_t history_exit:1; /*!< Request to exit history mode */
-	u32_t cmd_ctx	  :1; /*!< Shell is executing command */
 	u32_t last_nl     :8; /*!< Last received new line character */
 };
 
@@ -684,10 +683,7 @@ void shell_help(const struct shell *shell);
  * Pass command line to shell to execute.
  *
  * Note: This by no means makes any of the commands a stable interface, so
- * 	 this function should only be used for debugging/diagnostic.
- *
- *	 This function must not be called from shell command context!
-
+ * this function should only be used for debugging/diagnostic.
  *
  * @param[in] shell	Pointer to the shell instance. It can be NULL when
  *			the :option:`CONFIG_SHELL_BACKEND_DUMMY` option is

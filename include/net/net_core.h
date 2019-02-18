@@ -33,8 +33,6 @@ extern "C" {
  * @{
  */
 
-/** @cond INTERNAL_HIDDEN */
-
 /* Network subsystem logging helpers */
 #include <logging/log.h>
 
@@ -48,8 +46,6 @@ extern "C" {
 
 #define NET_ASSERT(cond) __ASSERT_NO_MSG(cond)
 #define NET_ASSERT_INFO(cond, fmt, ...) __ASSERT(cond, fmt, ##__VA_ARGS__)
-
-/** @endcond */
 
 #include <kernel.h>
 
@@ -87,7 +83,6 @@ int net_recv_data(struct net_if *iface, struct net_pkt *pkt);
  */
 int net_send_data(struct net_pkt *pkt);
 
-/** @cond INTERNAL_HIDDEN */
 /*
  * The net_stack_info struct needs to be aligned to 32 byte boundary,
  * otherwise the __net_stack_end will point to wrong location and looping
@@ -173,6 +168,7 @@ struct net_stack_info {
 
 #define NET_STACK_DEFINE_EMBEDDED(name, size) char name[size]
 
+/** @cond ignore */
 #if defined(CONFIG_INIT_STACKS)
 #include <misc/stack.h>
 
@@ -193,6 +189,7 @@ void net_analyze_stack(const char *name, const char *stack, size_t size);
 #define net_analyze_stack(...)
 #define net_analyze_stack_get_values(...)
 #endif
+/* @endcond */
 
 /* Some helper defines for traffic class support */
 #if defined(CONFIG_NET_TC_TX_COUNT) && defined(CONFIG_NET_TC_RX_COUNT)
@@ -209,8 +206,6 @@ void net_analyze_stack(const char *name, const char *stack, size_t size);
 #define NET_TC_RX_COUNT 1
 #define NET_TC_COUNT 1
 #endif /* CONFIG_NET_TC_TX_COUNT && CONFIG_NET_TC_RX_COUNT */
-
-/* @endcond */
 
 /**
  * @}

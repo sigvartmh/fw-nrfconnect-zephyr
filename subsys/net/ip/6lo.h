@@ -19,6 +19,7 @@
 #include <net/net_pkt.h>
 #include "icmpv6.h"
 
+#if defined(CONFIG_NET_6LO)
 /**
  *  @brief Compress IPv6 packet as per RFC 6282
  *
@@ -31,17 +32,7 @@
  *
  *  @return header size difference on success (>= 0), negative errno otherwise
  */
-#if defined(CONFIG_NET_6LO)
 int net_6lo_compress(struct net_pkt *pkt, bool iphc);
-#else
-static inline int net_6lo_compress(struct net_pkt *pkt, bool iphc)
-{
-	ARG_UNUSED(pkt);
-	ARG_UNUSED(iphc);
-
-	return 0;
-}
-#endif
 
 /**
  *  @brief Uncompress IPv6 packet as per RFC 6282
@@ -54,16 +45,7 @@ static inline int net_6lo_compress(struct net_pkt *pkt, bool iphc)
  *
  *  @return True on success, false otherwise
  */
-#if defined(CONFIG_NET_6LO)
 bool net_6lo_uncompress(struct net_pkt *pkt);
-#else
-static inline bool net_6lo_uncompress(struct net_pkt *pkt)
-{
-	ARG_UNUSED(pkt);
-
-	return true;
-}
-#endif
 
 /**
  *  @brief Set 6lowpan context information
@@ -78,4 +60,22 @@ void net_6lo_set_context(struct net_if *iface,
 			 struct net_icmpv6_nd_opt_6co *context);
 #endif
 
+#else
+
+static inline int net_6lo_compress(struct net_pkt *pkt, bool iphc)
+{
+	ARG_UNUSED(pkt);
+	ARG_UNUSED(iphc);
+
+	return 0;
+}
+
+static inline bool net_6lo_uncompress(struct net_pkt *pkt)
+{
+	ARG_UNUSED(pkt);
+
+	return true;
+}
+
+#endif /* CONFIG_NET_6LO */
 #endif /* __NET_6LO_H */

@@ -555,7 +555,7 @@ static bool parse_ipv6(const char *str, size_t str_len,
 	int end, len, ret, i;
 	u16_t port;
 
-	len = MIN(INET6_ADDRSTRLEN, str_len);
+	len = min(INET6_ADDRSTRLEN, str_len);
 
 	for (i = 0; i < len; i++) {
 		if (!str[i]) {
@@ -571,7 +571,7 @@ static bool parse_ipv6(const char *str, size_t str_len,
 			return false;
 		}
 
-		end = MIN(len, ptr - (str + 1));
+		end = min(len, ptr - (str + 1));
 		memcpy(ipaddr, str + 1, end);
 	} else {
 		end = len;
@@ -637,7 +637,7 @@ static bool parse_ipv4(const char *str, size_t str_len,
 	int end, len, ret, i;
 	u16_t port;
 
-	len = MIN(NET_IPV4_ADDR_LEN, str_len);
+	len = min(NET_IPV4_ADDR_LEN, str_len);
 
 	for (i = 0; i < len; i++) {
 		if (!str[i]) {
@@ -653,7 +653,7 @@ static bool parse_ipv4(const char *str, size_t str_len,
 			return false;
 		}
 
-		end = MIN(len, ptr - str);
+		end = min(len, ptr - str);
 	} else {
 		end = len;
 	}

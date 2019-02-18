@@ -96,7 +96,6 @@ static struct net_buf *rx_frag_list_que1[PRIORITY_QUEUE1_RX_DESC_COUNT];
 #if GMAC_PRIORITY_QUEUE_NO == 2
 static struct net_buf *rx_frag_list_que2[PRIORITY_QUEUE2_RX_DESC_COUNT];
 #endif
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 /* TX buffer accounting list */
 static struct net_buf *tx_frag_list_que0[MAIN_QUEUE_TX_DESC_COUNT];
 #if GMAC_PRIORITY_QUEUE_NO >= 1
@@ -113,7 +112,6 @@ static struct net_pkt *tx_frame_list_que1[CONFIG_NET_PKT_TX_COUNT + 1];
 #endif
 #if GMAC_PRIORITY_QUEUE_NO == 2
 static struct net_pkt *tx_frame_list_que2[CONFIG_NET_PKT_TX_COUNT + 1];
-#endif
 #endif
 #endif
 
@@ -151,7 +149,6 @@ static inline void dcache_clean(u32_t addr, u32_t size)
 	SCB_CleanDCache_by_Addr((uint32_t *)start_addr, size_full);
 }
 
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 /*
  * Reset ring buffer
  */
@@ -188,17 +185,18 @@ static void ring_buf_put(struct ring_buf *rb, u32_t val)
 	__ASSERT(rb->tail != rb->head,
 		 "ring buffer overflow");
 }
-#endif
 
 /*
  * Free pre-reserved RX buffers
  */
-static void free_rx_bufs(struct net_buf **rx_frag_list, u16_t len)
+static void free_rx_bufs(struct ring_buf *rx_frag_list)
 {
-	for (int i = 0; i < len; i++) {
-		if (rx_frag_list[i]) {
-			net_buf_unref(rx_frag_list[i]);
-			rx_frag_list[i] = NULL;
+	struct net_buf *buf;
+
+	for (int i = 0; i < rx_frag_list->len; i++) {
+		buf = (struct net_buf *)rx_frag_list->buf;
+		if (buf) {
+			net_buf_unref(buf);
 		}
 	}
 }
@@ -225,23 +223,24 @@ static void mac_addr_set(Gmac *gmac, u8_t index,
 static int rx_descriptors_init(Gmac *gmac, struct gmac_queue *queue)
 {
 	struct gmac_desc_list *rx_desc_list = &queue->rx_desc_list;
-	struct net_buf **rx_frag_list = queue->rx_frag_list;
+	struct ring_buf *rx_frag_list = &queue->rx_frag_list;
 	struct net_buf *rx_buf;
 	u8_t *rx_buf_addr;
 
-	__ASSERT_NO_MSG(rx_frag_list);
+	__ASSERT_NO_MSG(rx_frag_list->buf);
 
 	rx_desc_list->tail = 0U;
+	rx_frag_list->tail = 0U;
 
 	for (int i = 0; i < rx_desc_list->len; i++) {
 		rx_buf = net_pkt_get_reserve_rx_data(K_NO_WAIT);
 		if (rx_buf == NULL) {
-			free_rx_bufs(rx_frag_list, rx_desc_list->len);
+			free_rx_bufs(rx_frag_list);
 			LOG_ERR("Failed to reserve data net buffers");
 			return -ENOBUFS;
 		}
 
-		rx_frag_list[i] = rx_buf;
+		rx_frag_list->buf[i] = (u32_t)rx_buf;
 
 		rx_buf_addr = rx_buf->data;
 		__ASSERT(!((u32_t)rx_buf_addr & ~GMAC_RXW0_ADDR),
@@ -277,12 +276,10 @@ static void tx_descriptors_init(Gmac *gmac, struct gmac_queue *queue)
 	/* Set the wrap bit on the last descriptor */
 	tx_desc_list->buf[tx_desc_list->len - 1].w1 |= GMAC_TXW1_WRAP;
 
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 	/* Reset TX frame list */
 	ring_buf_reset(&queue->tx_frag_list);
 #if defined(CONFIG_PTP_CLOCK_SAM_GMAC)
 	ring_buf_reset(&queue->tx_frames);
-#endif
 #endif
 }
 
@@ -481,9 +478,6 @@ static inline struct net_if *get_iface(struct eth_sam_dev_data *ctx,
  */
 static void tx_completed(Gmac *gmac, struct gmac_queue *queue)
 {
-#if GMAC_MULTIPLE_TX_PACKETS == 0
-	k_sem_give(&queue->tx_sem);
-#else
 	struct gmac_desc_list *tx_desc_list = &queue->tx_desc_list;
 	struct gmac_desc *tx_desc;
 	struct net_buf *frag;
@@ -535,7 +529,6 @@ static void tx_completed(Gmac *gmac, struct gmac_queue *queue)
 			break;
 		}
 	}
-#endif
 }
 
 /*
@@ -543,13 +536,11 @@ static void tx_completed(Gmac *gmac, struct gmac_queue *queue)
  */
 static void tx_error_handler(Gmac *gmac, struct gmac_queue *queue)
 {
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 	struct net_buf *frag;
 	struct ring_buf *tx_frag_list = &queue->tx_frag_list;
 #if defined(CONFIG_PTP_CLOCK_SAM_GMAC)
 	struct net_pkt *pkt;
 	struct ring_buf *tx_frames = &queue->tx_frames;
-#endif
 #endif
 
 	queue->err_tx_flushed_count++;
@@ -557,7 +548,6 @@ static void tx_error_handler(Gmac *gmac, struct gmac_queue *queue)
 	/* Stop transmission, clean transmit pipeline and control registers */
 	gmac->GMAC_NCR &= ~GMAC_NCR_TXEN;
 
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 	/* Free all frag resources in the TX path */
 	while (tx_frag_list->tail != tx_frag_list->head) {
 		/* Release net buffer to the buffer pool */
@@ -580,16 +570,10 @@ static void tx_error_handler(Gmac *gmac, struct gmac_queue *queue)
 
 	/* Reinitialize TX descriptor list */
 	k_sem_reset(&queue->tx_desc_sem);
+	tx_descriptors_init(gmac, queue);
 	for (int i = 0; i < queue->tx_desc_list.len - 1; i++) {
 		k_sem_give(&queue->tx_desc_sem);
 	}
-#endif
-	tx_descriptors_init(gmac, queue);
-
-#if GMAC_MULTIPLE_TX_PACKETS == 0
-	/* Reinitialize TX mutex */
-	k_sem_give(&queue->tx_sem);
-#endif
 
 	/* Restart transmission */
 	gmac->GMAC_NCR |=  GMAC_NCR_TXEN;
@@ -606,6 +590,7 @@ static void rx_error_handler(Gmac *gmac, struct gmac_queue *queue)
 	gmac->GMAC_NCR &= ~GMAC_NCR_RXEN;
 
 	queue->rx_desc_list.tail = 0U;
+	queue->rx_frag_list.tail = 0U;
 
 	for (int i = 0; i < queue->rx_desc_list.len; i++) {
 		queue->rx_desc_list.buf[i].w1 = 0;
@@ -938,19 +923,12 @@ static int nonpriority_queue_init(Gmac *gmac, struct gmac_queue *queue)
 
 	tx_descriptors_init(gmac, queue);
 
-#if GMAC_MULTIPLE_TX_PACKETS == 0
-	/* Initialize TX semaphore. This semaphore is used to wait until the TX
-	 * data has been sent.
-	 */
-	k_sem_init(&queue->tx_sem, 0, 1);
-#else
 	/* Initialize TX descriptors semaphore. The semaphore is required as the
 	 * size of the TX descriptor list is limited while the number of TX data
 	 * buffers is not.
 	 */
 	k_sem_init(&queue->tx_desc_sem, queue->tx_desc_list.len - 1,
 		   queue->tx_desc_list.len - 1);
-#endif
 
 	/* Set Receive Buffer Queue Pointer Register */
 	gmac->GMAC_RBQB = (u32_t)queue->rx_desc_list.buf;
@@ -1005,12 +983,8 @@ static int priority_queue_init(Gmac *gmac, struct gmac_queue *queue)
 
 	tx_descriptors_init(gmac, queue);
 
-#if GMAC_MULTIPLE_TX_PACKETS == 0
-	k_sem_init(&queue->tx_sem, 0, 1);
-#else
 	k_sem_init(&queue->tx_desc_sem, queue->tx_desc_list.len - 1,
 		   queue->tx_desc_list.len - 1);
-#endif
 
 	/* Setup RX buffer size for DMA */
 	gmac->GMAC_RBSRPQ[queue_index] =
@@ -1076,7 +1050,7 @@ static struct net_pkt *frame_get(struct gmac_queue *queue)
 {
 	struct gmac_desc_list *rx_desc_list = &queue->rx_desc_list;
 	struct gmac_desc *rx_desc;
-	struct net_buf **rx_frag_list = queue->rx_frag_list;
+	struct ring_buf *rx_frag_list = &queue->rx_frag_list;
 	struct net_pkt *rx_frame;
 	bool frame_is_complete;
 	struct net_buf *frag;
@@ -1126,7 +1100,7 @@ static struct net_pkt *frame_get(struct gmac_queue *queue)
 	 */
 	while ((rx_desc->w0 & GMAC_RXW0_OWNERSHIP)
 	       && !frame_is_complete) {
-		frag = rx_frag_list[tail];
+		frag = (struct net_buf *)rx_frag_list->buf[tail];
 		frag_data =
 			(u8_t *)(rx_desc->w0 & GMAC_RXW0_ADDR);
 		__ASSERT(frag->data == frag_data,
@@ -1160,7 +1134,7 @@ static struct net_pkt *frame_get(struct gmac_queue *queue)
 				}
 				last_frag = frag;
 				frag = new_frag;
-				rx_frag_list[tail] = frag;
+				rx_frag_list->buf[tail] = (u32_t)frag;
 			}
 		}
 
@@ -1289,19 +1263,8 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 	u8_t *frag_data;
 	u16_t frag_len;
 	u32_t err_tx_flushed_count_at_entry;
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 	unsigned int key;
-#endif
 	u8_t pkt_prio;
-#if GMAC_MULTIPLE_TX_PACKETS == 0
-#if defined(CONFIG_PTP_CLOCK_SAM_GMAC)
-	u16_t vlan_tag = NET_VLAN_TAG_UNSPEC;
-	struct gptp_hdr *hdr;
-#if defined(CONFIG_NET_VLAN)
-	struct net_eth_hdr *eth_hdr;
-#endif
-#endif
-#endif
 
 	__ASSERT(pkt, "buf pointer is NULL");
 	__ASSERT(pkt->frags, "Frame data missing");
@@ -1334,7 +1297,6 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 		/* Assure cache coherency before DMA read operation */
 		dcache_clean((u32_t)frag_data, frag->size);
 
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 		k_sem_take(&queue->tx_desc_sem, K_FOREVER);
 
 		/* The following section becomes critical and requires IRQ lock
@@ -1349,7 +1311,6 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 			irq_unlock(key);
 			return -EIO;
 		}
-#endif
 
 		tx_desc = &tx_desc_list->buf[tx_desc_list->head];
 
@@ -1368,7 +1329,6 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 		/* Update descriptor position */
 		MODULO_INC(tx_desc_list->head, tx_desc_list->len);
 
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 		__ASSERT(tx_desc_list->head != tx_desc_list->tail,
 			 "tx_desc_list overflow");
 
@@ -1379,13 +1339,11 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 		net_pkt_frag_ref(frag);
 
 		irq_unlock(key);
-#endif
 
 		/* Continue with the rest of fragments (only data) */
 		frag = frag->frags;
 	}
 
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 	key = irq_lock();
 
 	/* Check if tx_error_handler() function was executed */
@@ -1393,7 +1351,6 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 		irq_unlock(key);
 		return -EIO;
 	}
-#endif
 
 	/* Ensure the descriptor following the last one is marked as used */
 	tx_desc_list->buf[tx_desc_list->head].w1 = GMAC_TXW1_USED;
@@ -1408,7 +1365,6 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 	 */
 	tx_first_desc->w1 &= ~GMAC_TXW1_USED;
 
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 #if defined(CONFIG_PTP_CLOCK_SAM_GMAC)
 	/* Account for a sent frame */
 	ring_buf_put(&queue->tx_frames, POINTER_TO_UINT(pkt));
@@ -1418,7 +1374,6 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 #endif
 
 	irq_unlock(key);
-#endif
 
 	/* Guarantee that the first fragment got its bit removed before starting
 	 * sending packets to avoid packets getting stuck.
@@ -1427,29 +1382,6 @@ static int eth_tx(struct device *dev, struct net_pkt *pkt)
 
 	/* Start transmission */
 	gmac->GMAC_NCR |= GMAC_NCR_TSTART;
-
-#if GMAC_MULTIPLE_TX_PACKETS == 0
-	/* Wait until the packet is sent */
-	k_sem_take(&queue->tx_sem, K_FOREVER);
-
-	/* Check if transmit successful or not */
-	if (queue->err_tx_flushed_count != err_tx_flushed_count_at_entry) {
-		return -EIO;
-	}
-#if defined(CONFIG_PTP_CLOCK_SAM_GMAC)
-#if defined(CONFIG_NET_VLAN)
-	eth_hdr = NET_ETH_HDR(pkt);
-	if (ntohs(eth_hdr->type) == NET_ETH_PTYPE_VLAN) {
-		vlan_tag = net_pkt_vlan_tag(pkt);
-	}
-#endif
-	hdr = check_gptp_msg(get_iface(dev_data, vlan_tag), pkt, true);
-	timestamp_tx_pkt(gmac, hdr, pkt);
-	if (hdr && need_timestamping(hdr)) {
-		net_if_add_tx_timestamp(pkt);
-	}
-#endif
-#endif
 
 	return 0;
 }
@@ -1489,12 +1421,10 @@ static void queue0_isr(void *arg)
 	if (isr & GMAC_INT_TX_ERR_BITS) {
 		tx_error_handler(gmac, queue);
 	} else if (isr & GMAC_ISR_TCOMP) {
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 		tail_desc = &tx_desc_list->buf[tx_desc_list->tail];
 		LOG_DBG("tx.w1=0x%08x, tail=%d",
 			tail_desc->w1,
 			tx_desc_list->tail);
-#endif
 
 		tx_completed(gmac, queue);
 	}
@@ -1539,12 +1469,10 @@ static inline void priority_queue_isr(void *arg, unsigned int queue_idx)
 	if (isrpq & GMAC_INTPQ_TX_ERR_BITS) {
 		tx_error_handler(gmac, queue);
 	} else if (isrpq & GMAC_ISRPQ_TCOMP) {
-#if GMAC_MULTIPLE_TX_PACKETS == 1
 		tail_desc = &tx_desc_list->buf[tx_desc_list->tail];
 		LOG_DBG("tx.w1=0x%08x, tail=%d",
 			tail_desc->w1,
 			tx_desc_list->tail);
-#endif
 
 		tx_completed(gmac, queue);
 	}
@@ -1962,8 +1890,10 @@ static struct eth_sam_dev_data eth0_data = {
 				.buf = tx_desc_que0,
 				.len = ARRAY_SIZE(tx_desc_que0),
 			},
-			.rx_frag_list = rx_frag_list_que0,
-#if GMAC_MULTIPLE_TX_PACKETS == 1
+			.rx_frag_list = {
+				.buf = (u32_t *)rx_frag_list_que0,
+				.len = ARRAY_SIZE(rx_frag_list_que0),
+			},
 			.tx_frag_list = {
 				.buf = (u32_t *)tx_frag_list_que0,
 				.len = ARRAY_SIZE(tx_frag_list_que0),
@@ -1973,7 +1903,6 @@ static struct eth_sam_dev_data eth0_data = {
 				.buf = (u32_t *)tx_frame_list_que0,
 				.len = ARRAY_SIZE(tx_frame_list_que0),
 			},
-#endif
 #endif
 		}, {
 			.que_idx = GMAC_QUE_1,
@@ -1986,8 +1915,10 @@ static struct eth_sam_dev_data eth0_data = {
 				.len = ARRAY_SIZE(tx_desc_que1),
 			},
 #if GMAC_PRIORITY_QUEUE_NO >= 1
-			.rx_frag_list = rx_frag_list_que1,
-#if GMAC_MULTIPLE_TX_PACKETS == 1
+			.rx_frag_list = {
+				.buf = (u32_t *)rx_frag_list_que1,
+				.len = ARRAY_SIZE(rx_frag_list_que1),
+			},
 			.tx_frag_list = {
 				.buf = (u32_t *)tx_frag_list_que1,
 				.len = ARRAY_SIZE(tx_frag_list_que1),
@@ -1997,7 +1928,6 @@ static struct eth_sam_dev_data eth0_data = {
 				.buf = (u32_t *)tx_frame_list_que1,
 				.len = ARRAY_SIZE(tx_frame_list_que1),
 			}
-#endif
 #endif
 #endif
 		}, {
@@ -2011,8 +1941,10 @@ static struct eth_sam_dev_data eth0_data = {
 				.len = ARRAY_SIZE(tx_desc_que2),
 			},
 #if GMAC_PRIORITY_QUEUE_NO == 2
-			.rx_frag_list = rx_frag_list_que2,
-#if GMAC_MULTIPLE_TX_PACKETS == 1
+			.rx_frag_list = {
+				.buf = (u32_t *)rx_frag_list_que2,
+				.len = ARRAY_SIZE(rx_frag_list_que2),
+			},
 			.tx_frag_list = {
 				.buf = (u32_t *)tx_frag_list_que2,
 				.len = ARRAY_SIZE(tx_frag_list_que2),
@@ -2022,7 +1954,6 @@ static struct eth_sam_dev_data eth0_data = {
 				.buf = (u32_t *)tx_frame_list_que2,
 				.len = ARRAY_SIZE(tx_frame_list_que2),
 			}
-#endif
 #endif
 #endif
 		}

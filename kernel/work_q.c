@@ -74,7 +74,7 @@ int k_delayed_work_submit_to_queue(struct k_work_q *work_q,
 				   s32_t delay)
 {
 	k_spinlock_key_t key = k_spin_lock(&work_q->lock);
-	int err = 0;
+	int err;
 
 	/* Work cannot be active in multiple queues */
 	if (work->work_q && work->work_q != work_q) {
@@ -93,21 +93,20 @@ int k_delayed_work_submit_to_queue(struct k_work_q *work_q,
 	/* Attach workqueue so the timeout callback can submit it */
 	work->work_q = work_q;
 
-	/* Submit work directly if no delay.  Note that this is a
-	 * blocking operation, so release the lock first.
-	 */
 	if (!delay) {
-		k_spin_unlock(&work_q->lock, key);
+		/* Submit work if no ticks is 0 */
 		k_work_submit_to_queue(work_q, &work->work);
-		return 0;
+	} else {
+		/* Add timeout */
+		_add_timeout(&work->timeout, work_timeout,
+			     _TICK_ALIGN + _ms_to_ticks(delay));
 	}
 
-	/* Add timeout */
-	_add_timeout(&work->timeout, work_timeout,
-		     _TICK_ALIGN + _ms_to_ticks(delay));
+	err = 0;
 
 done:
 	k_spin_unlock(&work_q->lock, key);
+
 	return err;
 }
 

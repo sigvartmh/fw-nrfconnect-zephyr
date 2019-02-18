@@ -18,6 +18,8 @@
 extern "C" {
 #endif
 
+#if defined(CONFIG_NET_GPTP)
+
 #include <net/gptp.h>
 
 /**
@@ -65,6 +67,8 @@ void gptp_md_init_state_machine(void);
  * @param port Number of the port the State Machines needs to be run on.
  */
 void gptp_md_state_machines(int port);
+
+#endif /* CONFIG_NET_GPTP */
 
 #ifdef __cplusplus
 }

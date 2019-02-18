@@ -908,14 +908,8 @@ static inline bool net_pkt_is_being_overwritten(struct net_pkt *pkt)
 	NET_BUF_POOL_DEFINE(name, count, CONFIG_NET_BUF_DATA_SIZE,	\
 			    CONFIG_NET_BUF_USER_DATA_SIZE, NULL)
 
-/** @cond INTERNAL_HIDDEN */
-
 #if defined(CONFIG_NET_DEBUG_NET_PKT_ALLOC) || \
 	(CONFIG_NET_PKT_LOG_LEVEL >= LOG_LEVEL_DBG)
-#define NET_PKT_DEBUG_ENABLED
-#endif
-
-#if defined(NET_PKT_DEBUG_ENABLED)
 
 /* Debug versions of the net_pkt functions that are used when tracking
  * buffer usage.
@@ -1014,10 +1008,6 @@ void net_pkt_frag_insert_debug(struct net_pkt *pkt, struct net_buf *frag,
 			       const char *caller, int line);
 #define net_pkt_frag_insert(pkt, frag)					\
 	net_pkt_frag_insert_debug(pkt, frag, __func__, __LINE__)
-#endif /* CONFIG_NET_DEBUG_NET_PKT_ALLOC ||
-	* CONFIG_NET_PKT_LOG_LEVEL >= LOG_LEVEL_DBG
-	*/
-/** @endcond */
 
 /**
  * @brief Print fragment list and the fragment sizes
@@ -1026,11 +1016,11 @@ void net_pkt_frag_insert_debug(struct net_pkt *pkt, struct net_buf *frag,
  *
  * @param pkt Network pkt.
  */
-#if defined(NET_PKT_DEBUG_ENABLED)
 void net_pkt_print_frags(struct net_pkt *pkt);
-#else
-#define net_pkt_print_frags(pkt)
-#endif
+
+#else /* CONFIG_NET_PKT_LOG_LEVEL >= LOG_LEVEL_DBG */
+
+#define net_pkt_print_frags(...)
 
 /**
  * @brief Get packet from the given packet slab.
@@ -1045,10 +1035,8 @@ void net_pkt_print_frags(struct net_pkt *pkt);
  *
  * @return Network packet if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_get_reserve(struct k_mem_slab *slab,
 				    s32_t timeout);
-#endif
 
 /**
  * @brief Get packet from the RX packet slab.
@@ -1064,10 +1052,8 @@ struct net_pkt *net_pkt_get_reserve(struct k_mem_slab *slab,
  *
  * @return Network packet if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_get_rx(struct net_context *context,
 			       s32_t timeout);
-#endif
 
 /**
  * @brief Get packet from the TX packets slab.
@@ -1084,10 +1070,8 @@ struct net_pkt *net_pkt_get_rx(struct net_context *context,
  *
  * @return Network packet if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_get_tx(struct net_context *context,
 			       s32_t timeout);
-#endif
 
 /**
  * @brief Get buffer from the DATA buffers pool.
@@ -1104,10 +1088,8 @@ struct net_pkt *net_pkt_get_tx(struct net_context *context,
  *
  * @return Network buffer if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_buf *net_pkt_get_data(struct net_context *context,
 				 s32_t timeout);
-#endif
 
 /**
  * @brief Get RX packet from slab
@@ -1122,9 +1104,7 @@ struct net_buf *net_pkt_get_data(struct net_context *context,
  *
  * @return Network packet if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_get_reserve_rx(s32_t timeout);
-#endif
 
 /**
  * @brief Get TX packet from slab
@@ -1139,9 +1119,7 @@ struct net_pkt *net_pkt_get_reserve_rx(s32_t timeout);
  *
  * @return Network packet if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_get_reserve_tx(s32_t timeout);
-#endif
 
 /**
  * @brief Get RX DATA buffer from pool.
@@ -1157,9 +1135,7 @@ struct net_pkt *net_pkt_get_reserve_tx(s32_t timeout);
  *
  * @return Network buffer if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_buf *net_pkt_get_reserve_rx_data(s32_t timeout);
-#endif
 
 /**
  * @brief Get TX DATA buffer from pool.
@@ -1175,9 +1151,7 @@ struct net_buf *net_pkt_get_reserve_rx_data(s32_t timeout);
  *
  * @return Network buffer if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_buf *net_pkt_get_reserve_tx_data(s32_t timeout);
-#endif
 
 /**
  * @brief Get a data fragment that might be from user specific
@@ -1191,9 +1165,7 @@ struct net_buf *net_pkt_get_reserve_tx_data(s32_t timeout);
  *
  * @return Network buffer if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_buf *net_pkt_get_frag(struct net_pkt *pkt, s32_t timeout);
-#endif
 
 /**
  * @brief Place packet back into the available packets slab
@@ -1204,9 +1176,7 @@ struct net_buf *net_pkt_get_frag(struct net_pkt *pkt, s32_t timeout);
  * @param pkt Network packet to release.
  *
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 void net_pkt_unref(struct net_pkt *pkt);
-#endif
 
 /**
  * @brief Increase the packet ref count
@@ -1217,9 +1187,7 @@ void net_pkt_unref(struct net_pkt *pkt);
  *
  * @return Network packet if successful, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_ref(struct net_pkt *pkt);
-#endif
 
 /**
  * @brief Increase the packet fragment ref count
@@ -1230,18 +1198,14 @@ struct net_pkt *net_pkt_ref(struct net_pkt *pkt);
  *
  * @return a pointer on the referenced Network fragment.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_buf *net_pkt_frag_ref(struct net_buf *frag);
-#endif
 
 /**
  * @brief Decrease the packet fragment ref count
  *
  * @param frag Network fragment to unref.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 void net_pkt_frag_unref(struct net_buf *frag);
-#endif
 
 /**
  * @brief Delete existing fragment from a packet
@@ -1253,11 +1217,9 @@ void net_pkt_frag_unref(struct net_buf *frag);
  * @return Pointer to the following fragment, or NULL if it had no
  *         further fragments.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_buf *net_pkt_frag_del(struct net_pkt *pkt,
 				 struct net_buf *parent,
 				 struct net_buf *frag);
-#endif
 
 /**
  * @brief Add a fragment to a packet at the end of its fragment list
@@ -1265,9 +1227,7 @@ struct net_buf *net_pkt_frag_del(struct net_pkt *pkt,
  * @param pkt pkt Network packet where to add the fragment
  * @param frag Fragment to add
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 void net_pkt_frag_add(struct net_pkt *pkt, struct net_buf *frag);
-#endif
 
 /**
  * @brief Insert a fragment to a packet at the beginning of its fragment list
@@ -1275,9 +1235,9 @@ void net_pkt_frag_add(struct net_pkt *pkt, struct net_buf *frag);
  * @param pkt pkt Network packet where to insert the fragment
  * @param frag Fragment to insert
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 void net_pkt_frag_insert(struct net_pkt *pkt, struct net_buf *frag);
-#endif
+
+#endif /* CONFIG_NET_PKT_LOG_LEVEL >= LOG_LEVEL_DBG */
 
 /**
  * @brief Copy len bytes from src starting from	offset to dst
@@ -1803,16 +1763,7 @@ bool net_pkt_insert(struct net_pkt *pkt, struct net_buf *frag,
 		    u16_t offset, u16_t len, u8_t *data,
 		    s32_t timeout);
 
-/**
- * @brief Insert u8_t data at an arbitrary offset in a series of fragments.
- *
- * @param pkt    Network packet.
- * @param frag   Network buffer fragment.
- * @param offset Offset of fragment where insertion will start.
- * @param data   Data to be inserted, can be NULL.
- *
- * @return True on success, False otherwise.
- */
+/* Insert u8_t data at an arbitrary offset in a series of fragments. */
 static inline bool net_pkt_insert_u8(struct net_pkt *pkt,
 				     struct net_buf *frag,
 				     u16_t offset,
@@ -1822,15 +1773,8 @@ static inline bool net_pkt_insert_u8(struct net_pkt *pkt,
 			      K_FOREVER);
 }
 
-/**
- * @brief Insert u16_t data at an arbitrary offset in a series of fragments.
- *
- * @param pkt    Network packet.
- * @param frag   Network buffer fragment.
- * @param offset Offset of fragment where insertion will start.
- * @param data   Data to be inserted, can be NULL.
- *
- * @return True on success, False otherwise.
+/* Insert u16_t big endian value at an arbitrary offset in a series of
+ * fragments.
  */
 static inline bool net_pkt_insert_be16(struct net_pkt *pkt,
 				       struct net_buf *frag,
@@ -1843,15 +1787,8 @@ static inline bool net_pkt_insert_be16(struct net_pkt *pkt,
 			      (u8_t *)&value, K_FOREVER);
 }
 
-/**
- * @brief Insert u32_t data at an arbitrary offset in a series of fragments.
- *
- * @param pkt    Network packet.
- * @param frag   Network buffer fragment.
- * @param offset Offset of fragment where insertion will start.
- * @param data   Data to be inserted, can be NULL.
- *
- * @return True on success, False otherwise.
+/* Insert u32_t big endian value at an arbitrary offset in a series of
+ * fragments.
  */
 static inline bool net_pkt_insert_be32(struct net_pkt *pkt,
 				       struct net_buf *frag,
@@ -1864,20 +1801,7 @@ static inline bool net_pkt_insert_be32(struct net_pkt *pkt,
 			      (u8_t *)&value, K_FOREVER);
 }
 
-/**
- * @brief Insert u8_t data at an arbitrary offset in a series of fragments.
- *
- * @param pkt    Network packet.
- * @param frag   Network buffer fragment.
- * @param offset Offset of fragment where insertion will start.
- * @param data   Data to be inserted, can be NULL.
- * @param timeout Affects the action taken should the net buf pool be empty.
- *        If K_NO_WAIT, then return immediately. If K_FOREVER, then
- *        wait as long as necessary. Otherwise, wait up to the specified
- *        number of milliseconds before timing out.
- *
- * @return True on success, False otherwise.
- */
+/* Insert u8_t data at an arbitrary offset in a series of fragments. */
 static inline bool net_pkt_insert_u8_timeout(struct net_pkt *pkt,
 					     struct net_buf *frag,
 					     u16_t offset,
@@ -1888,19 +1812,8 @@ static inline bool net_pkt_insert_u8_timeout(struct net_pkt *pkt,
 			      timeout);
 }
 
-/**
- * @brief Insert u16_t data at an arbitrary offset in a series of fragments.
- *
- * @param pkt    Network packet.
- * @param frag   Network buffer fragment.
- * @param offset Offset of fragment where insertion will start.
- * @param data   Data to be inserted, can be NULL.
- * @param timeout Affects the action taken should the net buf pool be empty.
- *        If K_NO_WAIT, then return immediately. If K_FOREVER, then
- *        wait as long as necessary. Otherwise, wait up to the specified
- *        number of milliseconds before timing out.
- *
- * @return True on success, False otherwise.
+/* Insert u16_t big endian value at an arbitrary offset in a series of
+ * fragments.
  */
 static inline bool net_pkt_insert_be16_timeout(struct net_pkt *pkt,
 					       struct net_buf *frag,
@@ -1914,19 +1827,8 @@ static inline bool net_pkt_insert_be16_timeout(struct net_pkt *pkt,
 			      (u8_t *)&value, timeout);
 }
 
-/**
- * @brief Insert u32_t data at an arbitrary offset in a series of fragments.
- *
- * @param pkt    Network packet.
- * @param frag   Network buffer fragment.
- * @param offset Offset of fragment where insertion will start.
- * @param data   Data to be inserted, can be NULL.
- * @param timeout Affects the action taken should the net buf pool be empty.
- *        If K_NO_WAIT, then return immediately. If K_FOREVER, then
- *        wait as long as necessary. Otherwise, wait up to the specified
- *        number of milliseconds before timing out.
- *
- * @return True on success, False otherwise.
+/* Insert u32_t big endian value at an arbitrary offset in a series of
+ * fragments.
  */
 static inline bool net_pkt_insert_be32_timeout(struct net_pkt *pkt,
 					       struct net_buf *frag,
@@ -1979,8 +1881,6 @@ void net_pkt_get_info(struct k_mem_slab **rx,
 		      struct net_buf_pool **rx_data,
 		      struct net_buf_pool **tx_data);
 
-/** @cond INTERNAL_HIDDEN */
-
 #if defined(CONFIG_NET_DEBUG_NET_PKT_ALLOC)
 /**
  * @brief Debug helper to print out the buffer allocations
@@ -2003,12 +1903,13 @@ const char *net_pkt_pool2str(struct net_buf_pool *pool);
 
 #else
 #define net_pkt_print(...)
-#endif /* CONFIG_NET_DEBUG_NET_PKT_ALLOC */
+#endif /* CONFIG_NET_PKT_LOG_LEVEL >= LOG_LEVEL_DBG */
 
 /* New allocator, and API are defined below.
  * This will be simpler when time will come to get rid of former API above.
  */
-#if defined(NET_PKT_DEBUG_ENABLED)
+#if defined(CONFIG_NET_DEBUG_NET_PKT_ALLOC) || \
+	(CONFIG_NET_PKT_LOG_LEVEL >= LOG_LEVEL_DBG)
 
 struct net_pkt *net_pkt_alloc_debug(s32_t timeout,
 				    const char *caller, int line);
@@ -2069,36 +1970,31 @@ struct net_pkt *net_pkt_rx_alloc_with_buffer_debug(struct net_if *iface,
 	net_pkt_rx_alloc_with_buffer_debug(_iface, _size, _family,	\
 					      _proto, _timeout,		\
 					      __func__, __LINE__)
-#endif
-/** @endcond */
+#else
 
 /**
  * @brief Allocate an initialized net_pkt
  *
  * Note: for the time being, 2 pools are used. One for TX and one for RX.
- *       This allocator has to be used for TX.
+ *       This allocater has to be used for TX.
  *
  * @param timeout Maximum time in milliseconds to wait for an allocation.
  *
  * @return a pointer to a newly allocated net_pkt on success, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_alloc(s32_t timeout);
-#endif
 
 /**
  * @brief Allocate an initialized net_pkt for RX
  *
  * Note: for the time being, 2 pools are used. One for TX and one for RX.
- *       This allocator has to be used for RX.
+ *       This allocater has to be used for RX.
  *
  * @param timeout Maximum time in milliseconds to wait for an allocation.
  *
  * @return a pointer to a newly allocated net_pkt on success, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_rx_alloc(s32_t timeout);
-#endif
 
 /**
  * @brief Allocate a network packet for a specific network interface.
@@ -2108,19 +2004,17 @@ struct net_pkt *net_pkt_rx_alloc(s32_t timeout);
  *
  * @return a pointer to a newly allocated net_pkt on success, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_alloc_on_iface(struct net_if *iface, s32_t timeout);
 
 /* Same as above but specifically for RX packet */
 struct net_pkt *net_pkt_rx_alloc_on_iface(struct net_if *iface, s32_t timeout);
-#endif
 
 /**
  * @brief Allocate buffer for a net_pkt
  *
  * Note: such allocator will take into account space necessary for headers,
  *       MTU, and existing buffer (if any). Beware that, due to all these
- *       criteria, the allocated size might be smaller/bigger than requested
+ *       criterias, the allocated size might be smaller/bigger than requested
  *       one.
  *
  * @param pkt     The network packet requiring buffer to be allocated.
@@ -2130,12 +2024,10 @@ struct net_pkt *net_pkt_rx_alloc_on_iface(struct net_if *iface, s32_t timeout);
  *
  * @return 0 on success, negative errno code otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 int net_pkt_alloc_buffer(struct net_pkt *pkt,
 			 size_t size,
 			 enum net_ip_protocol proto,
 			 s32_t timeout);
-#endif
 
 /**
  * @brief Allocate a network packet and buffer at once
@@ -2148,7 +2040,6 @@ int net_pkt_alloc_buffer(struct net_pkt *pkt,
  *
  * @return a pointer to a newly allocated net_pkt on success, NULL otherwise.
  */
-#if !defined(NET_PKT_DEBUG_ENABLED)
 struct net_pkt *net_pkt_alloc_with_buffer(struct net_if *iface,
 					  size_t size,
 					  sa_family_t family,
@@ -2162,7 +2053,9 @@ struct net_pkt *net_pkt_rx_alloc_with_buffer(struct net_if *iface,
 					     enum net_ip_protocol proto,
 					     s32_t timeout);
 
-#endif
+#endif /* CONFIG_NET_DEBUG_NET_PKT_ALLOC |
+	*  CONFIG_NET_PKT_LOG_LEVEL >= LOG_LEVEL_DBG
+	*/
 
 /**
  * @brief Append a buffer in packet
@@ -2175,7 +2068,7 @@ void net_pkt_append_buffer(struct net_pkt *pkt, struct net_buf *buffer);
 /**
  * @brief Get available buffer space from a pkt
  *
- * @param pkt The net_pkt which buffer availability should be evaluated
+ * @param pkt The net_pkt which buffer availabality should be evaluated
  *
  * @return the amount of buffer available
  */
@@ -2209,7 +2102,7 @@ void net_pkt_trim_buffer(struct net_pkt *pkt);
 /**
  * @brief Initialize net_pkt cursor
  *
- * Note: This will initialize the net_pkt cursor from its buffer.
+ * Note: This will inialize the net_pkt cursor from its buffer.
  *
  * @param pkt The net_pkt which cursor is going to be initialized
  */
@@ -2218,7 +2111,7 @@ void net_pkt_cursor_init(struct net_pkt *pkt);
 /**
  * @brief Backup net_pkt cursor
  *
- * @param pkt    The net_pkt which cursor is going to be backed up
+ * @param pkt    The net_pkt which cursor is going to be backuped
  * @param backup The cursor where to backup net_pkt cursor
  */
 static inline void net_pkt_cursor_backup(struct net_pkt *pkt,
@@ -2274,7 +2167,7 @@ int net_pkt_skip(struct net_pkt *pkt, size_t length);
  * @brief Memset some data in a net_pkt
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip.
+ *       eventally, properly positioned using net_pkt_skip.
  *       Cursor will be updated according to parameter.
  *
  * @param pkt    The net_pkt which cursor will be updated to skip given
@@ -2290,7 +2183,7 @@ int net_pkt_memset(struct net_pkt *pkt, int byte, size_t length);
  * @brief Copy data from a packet into another one.
  *
  * Note: Both net_pkt cursors should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip.
+ *       eventally, properly positioned using net_pkt_skip.
  *       Cursors will be updated according to parameters.
  *
  * @param pkt_dst Destination network packet.
@@ -2317,7 +2210,7 @@ struct net_pkt *net_pkt_clone(struct net_pkt *pkt, s32_t timeout);
  * @brief Read some data from a net_pkt
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip.
+ *       eventally, properly positioned using net_pkt_skip.
  *       Cursor will be updated according to parameters.
  * @param pkt    The network packet from where to read some data
  * @param data   The destination buffer where to copy the data
@@ -2337,7 +2230,7 @@ static inline int net_pkt_read_u8_new(struct net_pkt *pkt, u8_t *data)
  * @brief Read u16_t big endian data from a net_pkt
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip.
+ *       eventally, properly positioned using net_pkt_skip.
  *       Cursor will be updated according to parameters.
  *
  * @param pkt  The network packet from where to read
@@ -2351,7 +2244,7 @@ int net_pkt_read_be16_new(struct net_pkt *pkt, u16_t *data);
  * @brief Read u32_t big endian data from a net_pkt
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip.
+ *       eventally, properly positioned using net_pkt_skip.
  *       Cursor will be updated according to parameters.
  *
  * @param pkt  The network packet from where to read
@@ -2365,7 +2258,7 @@ int net_pkt_read_be32_new(struct net_pkt *pkt, u32_t *data);
  * @brief Write data into a net_pkt
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip_read/write.
+ *       eventally, properly positioned using net_pkt_skip_read/write.
  *       Cursor will be updated according to parameters.
  *
  * @param pkt    The network packet where to write
@@ -2433,7 +2326,7 @@ int net_pkt_update_length(struct net_pkt *pkt, size_t length);
  * @brief Remove data from the packet at current location
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip/read/write.
+ *       eventally, properly positioned using net_pkt_skip/read/write.
  *
  * @param pkt    Network packet
  * @param length Number of bytes to be removed
@@ -2456,7 +2349,7 @@ u16_t net_pkt_get_current_offset(struct net_pkt *pkt);
  * @brief Check if a data size could fit contiguously
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip_read/write.
+ *       eventally, properly positioned using net_pkt_skip_read/write.
  *
  * @param pkt  Network packet.
  * @param size The size to check for contiguity
@@ -2501,7 +2394,7 @@ struct net_pkt_data_access {
  * @brief Get data from a network packet in a contiguous way
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip_read/write.
+ *       eventally, properly positioned using net_pkt_skip_read/write.
  *       Cursor will be updated according to parameters.
  *
  * @param pkt    The network packet from where to get the data.
@@ -2517,7 +2410,7 @@ void *net_pkt_get_data_new(struct net_pkt *pkt,
  * @brief Set contiguous data into a network packet
  *
  * Note: net_pkt's cursor should be properly initialized and,
- *       eventually, properly positioned using net_pkt_skip_read/write.
+ *       eventally, properly positioned using net_pkt_skip_read/write.
  *       Cursor will be updated according to parameters.
  *
  * @param pkt    The network packet to where the data should be set.
