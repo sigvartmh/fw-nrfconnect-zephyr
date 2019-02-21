@@ -19,12 +19,12 @@ const struct flash_area default_flash_map[] = {
 		.fa_size = PM_CFG_MCUBOOT_SIZE,
 	},{
 		.fa_id = 1,
-		.fa_off = PM_CFG_APP_ADDRESS,
+		.fa_off = PM_CFG_SPU_SETUP_ADDRESS,
 		.fa_dev_name = DT_FLASH_AREA_0_DEV,
 		.fa_size = IMAGE_SIZE,
 	},{
 		.fa_id = 2,
-		.fa_off = PM_CFG_APP_ADDRESS + IMAGE_SIZE,
+		.fa_off = PM_CFG_SPU_SETUP_ADDRESS + IMAGE_SIZE,
 		.fa_dev_name = DT_FLASH_AREA_0_DEV,
 		.fa_size = IMAGE_SIZE,
 	},{
