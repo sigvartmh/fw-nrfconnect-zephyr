@@ -517,6 +517,11 @@ endif()
 zephyr_library_named(app)
 set_property(TARGET ${IMAGE}app PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${IMAGE}app)
 
+if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.yaml)
+set(PARTITION_MANAGER_TARGET_PRESENT 1)
+set(PARTITION_MANAGER_TARGET PARTITION_MANAGER_TARGET)
+endif()
+
 add_subdirectory(${ZEPHYR_BASE} ${__build_dir})
 
 if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.yaml)

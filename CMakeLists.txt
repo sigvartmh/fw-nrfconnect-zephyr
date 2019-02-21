@@ -720,6 +720,11 @@ set(OFFSETS_C_PATH ${ARCH_DIR}/${ARCH}/core/offsets/offsets.c)
 set(OFFSETS_H_PATH ${PROJECT_BINARY_DIR}/include/generated/offsets.h)
 add_library(          ${OFFSETS_LIB} OBJECT ${OFFSETS_C_PATH})
 target_link_libraries(${OFFSETS_LIB} ${IMAGE}zephyr_interface)
+
+if(PARTITION_MANAGER_TARGET_PRESENT)
+add_dependencies(${OFFSETS_LIB} PARTITION_MANAGER_TARGET)
+endif()
+
 add_dependencies(     ${OFFSETS_LIB}
   ${SYSCALL_LIST_H_TARGET}
   ${SYSCALL_MACROS_H_TARGET}
@@ -1218,7 +1223,7 @@ endif()
 add_executable(       ${ZEPHYR_PREBUILT_EXECUTABLE} misc/empty_file.c)
 target_link_libraries(${ZEPHYR_PREBUILT_EXECUTABLE} ${TOPT} ${PROJECT_BINARY_DIR}/linker.cmd ${PRIV_STACK_LIB} ${zephyr_lnk} ${CODE_RELOCATION_DEP})
 set_property(TARGET   ${ZEPHYR_PREBUILT_EXECUTABLE} PROPERTY LINK_DEPENDS ${PROJECT_BINARY_DIR}/linker.cmd)
-add_dependencies(     ${ZEPHYR_PREBUILT_EXECUTABLE} ${ALIGN_SIZING_DEP} ${PRIV_STACK_DEP} ${LINKER_SCRIPT_TARGET} ${OFFSETS_LIB})
+add_dependencies(     ${ZEPHYR_PREBUILT_EXECUTABLE} ${ALIGN_SIZING_DEP} ${PRIV_STACK_DEP} ${LINKER_SCRIPT_TARGET} ${OFFSETS_LIB} )
 
 
 if(GKOF OR GKSF)
@@ -1283,6 +1288,8 @@ if(NOT CONFIG_BUILD_NO_GAP_FILL)
   set(GAP_FILL "--gap-fill;0xff")
 endif()
 
+add_custom_target(${IMAGE}hex_target DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${KERNEL_HEX_NAME})
+
 list_append_ifdef(
   CONFIG_BUILD_OUTPUT_HEX
   post_build_commands
@@ -1344,8 +1351,29 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   # NB: COMMENT only works for some CMake-Generators
   )
+
 if(FIRST_BOILERPLATE_EXECUTION)
 
+  get_property(SECURE_IMAGE_HEX_FILES_TO_MERGE
+	GLOBAL
+	PROPERTY
+	SECURE_IMAGE_HEX_FILES_TO_MERGE
+  )
+
+  add_custom_command(
+    OUTPUT merged_secure_fw.hex
+    COMMAND
+    ${PYTHON_EXECUTABLE}
+    ${ZEPHYR_BASE}/scripts/mergehex.py
+    -o merged_secure_fw.hex
+    ${SECURE_IMAGE_HEX_FILES_TO_MERGE}
+    ${CMAKE_CURRENT_BINARY_DIR}/${KERNEL_HEX_NAME}
+    DEPENDS
+    kernel_elf
+    spu_setup_kernel_elf
+    )
+
+  add_custom_target(merged_secure_fw DEPENDS merged_secure_fw.hex)
   # To populate with hex files to merge, do the following:
   #  set_property(GLOBAL APPEND PROPERTY HEX_FILES_TO_MERGE ${my_local_list})
   # Note that the zephyr.hex file will not be included automatically.
@@ -1363,7 +1391,6 @@ if(FIRST_BOILERPLATE_EXECUTION)
   if(HEX_FILES_TO_MERGE)
     # Merge in out-of-tree hex files.
     set(MERGED_HEX_NAME merged.hex)
-
     add_custom_command(
       OUTPUT ${MERGED_HEX_NAME}
       COMMAND
