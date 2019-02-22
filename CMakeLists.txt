@@ -1370,7 +1370,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
     ${CMAKE_CURRENT_BINARY_DIR}/${KERNEL_HEX_NAME}
     DEPENDS
     kernel_elf
-    spu_setup_kernel_elf
+    secure_partition_kernel_elf
     )
 
   add_custom_target(merged_secure_fw DEPENDS merged_secure_fw.hex)
