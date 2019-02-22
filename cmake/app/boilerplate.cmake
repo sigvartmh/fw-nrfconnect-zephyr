@@ -375,7 +375,15 @@ else() # NOT FIRST_BOILERPLATE_EXECUTION
 
   # Have the child image select the same BOARD that was selected by
   # the parent.
+  # Unless parent was "ns" in which case we assume that
+  # the child images all are secure.
   set(BOARD ${CACHED_BOARD})
+  if (${BOARD} MATCHES  ".*ns")
+    string(LENGTH ${BOARD} len)
+    MATH(EXPR len "${len}-2")
+    string(SUBSTRING ${BOARD} 0 ${len} BOARD)
+    message("Changed board to ${BOARD}")
+  endif()
 
   set(DTS_SOURCE ${BOARD_DIR}/${BOARD}.dts)
   set(DTS_COMMON_OVERLAYS ${ZEPHYR_BASE}/dts/common/common.dts)
