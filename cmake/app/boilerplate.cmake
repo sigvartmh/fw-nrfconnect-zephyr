@@ -125,14 +125,6 @@ include(CheckCXXCompilerFlag)
 include(${ZEPHYR_BASE}/cmake/extensions.cmake)
 include(${ZEPHYR_BASE}/cmake/version.cmake)  # depends on hex.cmake
 
-#
-# Find tools
-#
-
-include(${ZEPHYR_BASE}/cmake/python.cmake)
-include(${ZEPHYR_BASE}/cmake/git.cmake)  # depends on version.cmake
-include(${ZEPHYR_BASE}/cmake/ccache.cmake)
-
 if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
   message(FATAL_ERROR "Source directory equals build directory.\
  In-source builds are not supported.\
@@ -140,6 +132,14 @@ if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
 if(FIRST_BOILERPLATE_EXECUTION)
+  #
+  # Find tools
+  #
+
+  include(${ZEPHYR_BASE}/cmake/python.cmake)
+  include(${ZEPHYR_BASE}/cmake/git.cmake)  # depends on version.cmake
+  include(${ZEPHYR_BASE}/cmake/ccache.cmake)
+
   add_custom_target(
     pristine
     COMMAND ${CMAKE_COMMAND} -P ${ZEPHYR_BASE}/cmake/pristine.cmake
@@ -239,36 +239,36 @@ if(FIRST_BOILERPLATE_EXECUTION)
 
   set(shield_cli_argument ${cached_shield_value}) # Either new or old
   if(shield_cli_argument STREQUAL CACHED_SHIELD)
-    # We already have a CACHED_SHIELD so there is no new input on the CLI
-    unset(shield_cli_argument)
+	# We already have a CACHED_SHIELD so there is no new input on the CLI
+	unset(shield_cli_argument)
   endif()
 
   set(shield_app_cmake_lists ${SHIELD})
   if(cached_shield_value STREQUAL SHIELD)
-    # The app build scripts did not set a default, The SHIELD we are
-    # reading is the cached value from the CLI
-    unset(shield_app_cmake_lists)
+	# The app build scripts did not set a default, The SHIELD we are
+	# reading is the cached value from the CLI
+	unset(shield_app_cmake_lists)
   endif()
 
   if(CACHED_SHIELD)
-    # Warn the user if it looks like he is trying to change the shield
-    # without cleaning first
-    if(shield_cli_argument)
+	# Warn the user if it looks like he is trying to change the shield
+	# without cleaning first
+	if(shield_cli_argument)
       if(NOT (CACHED_SHIELD STREQUAL shield_cli_argument))
-        message(WARNING "The build directory must be cleaned pristinely when changing shields")
-        # TODO: Support changing shields without requiring a clean build
+		message(WARNING "The build directory must be cleaned pristinely when changing shields")
+		# TODO: Support changing shields without requiring a clean build
       endif()
-    endif()
+	endif()
 
-    set(SHIELD ${CACHED_SHIELD})
+	set(SHIELD ${CACHED_SHIELD})
   elseif(shield_cli_argument)
-    set(SHIELD ${shield_cli_argument})
+	set(SHIELD ${shield_cli_argument})
 
   elseif(DEFINED ENV{SHIELD})
-    set(SHIELD $ENV{SHIELD})
+	set(SHIELD $ENV{SHIELD})
 
   elseif(shield_app_cmake_lists)
-    set(SHIELD ${shield_app_cmake_lists})
+	set(SHIELD ${shield_app_cmake_lists})
   endif()
 
   # Store the selected shield in the cache
@@ -329,12 +329,12 @@ if(FIRST_BOILERPLATE_EXECUTION)
   endif()
 
   if(DEFINED SHIELD AND DEFINED NOT_FOUND_SHIELD_LIST)
-    foreach (s ${NOT_FOUND_SHIELD_LIST})
+	foreach (s ${NOT_FOUND_SHIELD_LIST})
       message("No shield named '${s}' found")
-    endforeach()
-    print_usage()
-    unset(CACHED_SHIELD CACHE)
-    message(FATAL_ERROR "Invalid usage")
+	endforeach()
+	print_usage()
+	unset(CACHED_SHIELD CACHE)
+	message(FATAL_ERROR "Invalid usage")
   endif()
 
   # Prevent CMake from testing the toolchain
@@ -384,11 +384,7 @@ else() # NOT FIRST_BOILERPLATE_EXECUTION
     string(SUBSTRING ${BOARD} 0 ${len} BOARD)
     message("Changed board to ${BOARD}")
   endif()
-
-  set(DTS_SOURCE ${BOARD_DIR}/${BOARD}.dts)
-  set(DTS_COMMON_OVERLAYS ${ZEPHYR_BASE}/dts/common/common.dts)
-  set(DTS_APP_BINDINGS ${APPLICATION_SOURCE_DIR}/dts/bindings)
-  set(DTS_APP_INCLUDE ${APPLICATION_SOURCE_DIR}/dts)
+  set(BOARD ${CACHED_BOARD})
 
   unset(CONF_FILE)
   if(EXISTS       ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
@@ -420,6 +416,19 @@ foreach(root ${BOARD_ROOT})
   get_property(BOARD_DIR CACHE TMP_BOARD_DIR PROPERTY VALUE)
   unset(TMP_BOARD_DIR CACHE)
 
+  if(BOARD_DIR AND NOT (${root} STREQUAL ${ZEPHYR_BASE}))
+    set(USING_OUT_OF_TREE_BOARD 1)
+  endif()
+endforeach()
+
+if(NOT BOARD_DIR)
+  message("No board named '${BOARD}' found")
+  print_usage()
+  unset(CACHED_BOARD CACHE)
+  message(FATAL_ERROR "Invalid usage")
+endif()
+
+get_filename_component(BOARD_ARCH_DIR ${BOARD_DIR}}     DIRECTORY)
   if(BOARD_DIR AND NOT (${root} STREQUAL ${ZEPHYR_BASE}))
     set(USING_OUT_OF_TREE_BOARD 1)
   endif()
