@@ -384,7 +384,6 @@ else() # NOT FIRST_BOILERPLATE_EXECUTION
     string(SUBSTRING ${BOARD} 0 ${len} BOARD)
     message("Changed board to ${BOARD}")
   endif()
-  set(BOARD ${CACHED_BOARD})
 
   unset(CONF_FILE)
   if(EXISTS       ${APPLICATION_SOURCE_DIR}/prj_${BOARD}.conf)
@@ -416,19 +415,6 @@ foreach(root ${BOARD_ROOT})
   get_property(BOARD_DIR CACHE TMP_BOARD_DIR PROPERTY VALUE)
   unset(TMP_BOARD_DIR CACHE)
 
-  if(BOARD_DIR AND NOT (${root} STREQUAL ${ZEPHYR_BASE}))
-    set(USING_OUT_OF_TREE_BOARD 1)
-  endif()
-endforeach()
-
-if(NOT BOARD_DIR)
-  message("No board named '${BOARD}' found")
-  print_usage()
-  unset(CACHED_BOARD CACHE)
-  message(FATAL_ERROR "Invalid usage")
-endif()
-
-get_filename_component(BOARD_ARCH_DIR ${BOARD_DIR}}     DIRECTORY)
   if(BOARD_DIR AND NOT (${root} STREQUAL ${ZEPHYR_BASE}))
     set(USING_OUT_OF_TREE_BOARD 1)
   endif()
@@ -551,8 +537,8 @@ zephyr_library_named(app)
 set_property(TARGET ${IMAGE}app PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${IMAGE}app)
 
 if(EXISTS ${APPLICATION_SOURCE_DIR}/pm.yaml)
-set(PARTITION_MANAGER_TARGET_PRESENT 1)
-set(PARTITION_MANAGER_TARGET PARTITION_MANAGER_TARGET)
+  set(PARTITION_MANAGER_TARGET_PRESENT 1)
+  set(PARTITION_MANAGER_TARGET PARTITION_MANAGER_TARGET)
 endif()
 
 add_subdirectory(${ZEPHYR_BASE} ${__build_dir})

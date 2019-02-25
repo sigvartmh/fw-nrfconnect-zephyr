@@ -1378,8 +1378,6 @@ add_custom_command(
   )
 if(FIRST_BOILERPLATE_EXECUTION)
 
-if(FIRST_BOILERPLATE_EXECUTION)
-
   get_property(SECURE_IMAGE_HEX_FILES_TO_MERGE
 	GLOBAL
 	PROPERTY
@@ -1417,6 +1415,7 @@ if(FIRST_BOILERPLATE_EXECUTION)
   if(HEX_FILES_TO_MERGE)
     # Merge in out-of-tree hex files.
     set(MERGED_HEX_NAME merged.hex)
+
     add_custom_command(
       OUTPUT ${MERGED_HEX_NAME}
       COMMAND
