@@ -131,7 +131,9 @@ z_arch_switch_to_main_thread(struct k_thread *main_thread,
 	:
 	: "r" (_main), "r" (start_of_main_stack)
 	);
-
+#if defined(__clang__)
+	printk("%p",start_of_main_stack);
+#endif
 	CODE_UNREACHABLE;
 }
 
