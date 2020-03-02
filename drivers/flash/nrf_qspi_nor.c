@@ -490,11 +490,25 @@ static int qspi_nor_read(struct device *dev, off_t addr, void *dest,
 	if (!dest) {
 		return -EINVAL;
 	}
+#if (CONFIG_HEAP_MEM_POOL_SIZE > 0)
+	void *tmp_dest = dest;
+	size_t var_size = size;
+	u8_t tmp_buf[size];
 
+	if (((uint32_t)dest < CONFIG_SRAM_BASE_ADDRESS)
+	   || (size < sizeof(uint32_t))) {
+		if (size < sizeof(uint32_t)) {
+			size = 4;
+		}
+		dest = tmp_buf;
+	}
+#else
 	/* read size must be non-zero multiple of 4 bytes */
 	if (((size % 4U) != 0) || (size == 0)) {
 		return -EINVAL;
 	}
+#endif
+
 	/* address must be 4-byte aligned */
 	if ((addr % 4U) != 0) {
 		return -EINVAL;
@@ -518,7 +532,9 @@ static int qspi_nor_read(struct device *dev, off_t addr, void *dest,
 	nrfx_err_t res = nrfx_qspi_read(dest, size, addr);
 
 	qspi_wait_for_completion(dev, res);
-
+#if (CONFIG_HEAP_MEM_POOL_SIZE > 0)
+	memcpy(tmp_dest, dest, var_size);
+#endif
 	return qspi_get_zephyr_ret_code(res);
 }
 
@@ -529,14 +545,30 @@ static int qspi_nor_write(struct device *dev, off_t addr, const void *src,
 		return -EINVAL;
 	}
 
-	/* write size must be non-zero multiple of 4 bytes */
-	if (((size % 4U) != 0) || (size == 0)) {
-		return -EINVAL;
-	}
 	/* address must be 4-byte aligned */
 	if ((addr % 4U) != 0) {
 		return -EINVAL;
 	}
+#if 1 
+	size_t tmp_size = size;
+	if (size < sizeof(uint32_t)) {
+		tmp_size = 4;
+	}
+	u8_t tmp_buf[tmp_size];
+	if (size < sizeof(uint32_t)) {
+		memset(tmp_buf, 0xFF, tmp_size);
+	}
+	if (((uint32_t)src < CONFIG_SRAM_BASE_ADDRESS)){
+		memcpy(tmp_buf, src, size);
+		src = tmp_buf;
+	}
+#else 
+	/* write size must be non-zero multiple of 4 bytes */
+	if (((size % 4U) != 0) || (size == 0)) {
+		return -EINVAL;
+	}
+#endif
+
 
 	struct qspi_nor_data *const driver_data = dev->driver_data;
 	const struct qspi_nor_config *params = dev->config->config_info;
@@ -561,7 +593,6 @@ static int qspi_nor_write(struct device *dev, off_t addr, const void *src,
 	nrfx_err_t res = nrfx_qspi_write(src, size, addr);
 
 	qspi_wait_for_completion(dev, res);
-
 	return qspi_get_zephyr_ret_code(res);
 }
 
@@ -642,9 +673,15 @@ static int qspi_nor_configure(struct device *dev)
  */
 static int qspi_nor_init(struct device *dev)
 {
+#if defined(CONFIG_MULTITHREADING)
 	IRQ_CONNECT(DT_NORDIC_NRF_QSPI_QSPI_0_IRQ_0,
 		    DT_NORDIC_NRF_QSPI_QSPI_0_IRQ_0_PRIORITY,
 		    nrfx_isr, nrfx_qspi_irq_handler, 0);
+#else
+	IRQ_DIRECT_CONNECT(DT_NORDIC_NRF_QSPI_QSPI_0_IRQ_0,
+		    DT_NORDIC_NRF_QSPI_QSPI_0_IRQ_0_PRIORITY,
+		    nrfx_qspi_irq_handler, 0);
+#endif
 	return qspi_nor_configure(dev);
 }
 
