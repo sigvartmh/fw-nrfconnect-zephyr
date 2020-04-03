@@ -483,11 +483,13 @@ static int qspi_nor_read(struct device *dev, off_t addr, void *dest,
 		return -EINVAL;
 	}
 
+#if !IS_ENABLED(CONFIG_QSPI_NOR_EMULATE_ONE_BYTE_RW_ACCESS)
 	/* read size must be multiple of 4 bytes */
 	if (size % sizeof(uint32_t) ||
 	    !(size > 0)) {
 		return -EINVAL;
 	}
+#endif
 
 	const struct qspi_nor_config *params = dev->config->config_info;
 
@@ -503,9 +505,18 @@ static int qspi_nor_read(struct device *dev, off_t addr, void *dest,
 	}
 
 	qspi_lock(dev);
-
+#if IS_ENABLED(CONFIG_QSPI_NOR_EMULATE_ONE_BYTE_RW_ACCESS) 
+	if (size % sizeof(uint32_t) ||
+	    !(size > 0)) {
+		u8_t dest_buf[4];
+		int ret = nrfx_qspi_read(dest_buf, size, addr);
+		memcpy(dest, dest_buf, size);
+	} else {
+		int ret = nrfx_qspi_read(dest, size, addr);
+	}
+#else
 	int ret = nrfx_qspi_read(dest, size, addr);
-
+#endif
 	qspi_wait_for_completion(dev);
 	return qspi_get_zephyr_ret_code(ret);
 }
@@ -517,11 +528,13 @@ static int qspi_nor_write(struct device *dev, off_t addr, const void *src,
 		return -EINVAL;
 	}
 
+#if !IS_ENABLED(CONFIG_QSPI_NOR_EMULATE_ONE_BYTE_RW_ACCESS)
 	/* write size must be multiple of 4 bytes */
 	if (size % sizeof(uint32_t) ||
 	    !(size > 0)) {
 		return -EINVAL;
 	}
+#endif
 
 	struct qspi_nor_data *const driver_data = dev->driver_data;
 	const struct qspi_nor_config *params = dev->config->config_info;
@@ -542,9 +555,20 @@ static int qspi_nor_write(struct device *dev, off_t addr, const void *src,
 	}
 
 	qspi_lock(dev);
-
+#if IS_ENABLED(CONFIG_QSPI_NOR_EMULATE_ONE_BYTE_RW_ACCESS)
+	if (((uint32_t)dest < CONFIG_SRAM_BASE_ADDRESS)) {
+		if (size < sizeof(uint32_t)) {
+			u8_t byte_src[sizeof(uint32_t)];
+			qspi_nor_read(dev, addr, tmp_buf, sizeof(uint32_t));
+			uint32_t word = (uint32_t)bytes_src[0]
+                            | ((uint32_t)bytes_src[1]) << 8
+                            | ((uint32_t)bytes_src[2]) << 16
+                            | ((uint32_t)bytes_src[3]) << 24;
+		}
+	}
+#else
 	int ret = nrfx_qspi_write(src, size, addr);
-
+#endif
 	qspi_wait_for_completion(dev);
 	return qspi_get_zephyr_ret_code(ret);
 }
